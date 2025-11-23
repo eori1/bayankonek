@@ -428,9 +428,9 @@ class _OtpUnderlineField extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: 40,
-      child: RawKeyboardListener(
+      child: KeyboardListener(
         focusNode: FocusNode(skipTraversal: true),
-        onKey: (event) {
+        onKeyEvent: (event) {
           if (event is KeyDownEvent &&
               event.logicalKey == LogicalKeyboardKey.backspace &&
               controller.text.isEmpty) {

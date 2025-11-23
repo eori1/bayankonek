@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../widgets/app_bottom_nav.dart';
@@ -19,6 +21,8 @@ class _RequestDocumentPageState extends State<RequestDocumentPage> {
     'Residency Certificate',
   ];
   String? _selectedDoc;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -36,8 +40,59 @@ class _RequestDocumentPageState extends State<RequestDocumentPage> {
     return '#DOC-${now.year}-$sequence';
   }
 
+  Future<void> _submitRequest() async {
+    final name = _nameController.text.trim();
+    final purpose = _purposeController.text.trim();
+
+    if (name.isEmpty || purpose.isEmpty || _selectedDoc == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please complete all fields before submitting.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    final requestId = _generateRequestId();
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    try {
+      await _firestore.collection('requests').doc(requestId).set({
+        'requestId': requestId,
+        'fullName': name,
+        'documentType': _selectedDoc,
+        'purpose': purpose,
+        'status': 'submitted',
+        'submittedAt': FieldValue.serverTimestamp(),
+        if (userId != null) 'userId': userId,
+      });
+
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => RequestSubmittedPage(requestId: requestId),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to submit request: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
@@ -76,7 +131,7 @@ class _RequestDocumentPageState extends State<RequestDocumentPage> {
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton.icon(
+                child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1F6FE3),
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -85,28 +140,37 @@ class _RequestDocumentPageState extends State<RequestDocumentPage> {
                     ),
                     elevation: 6,
                   ),
-                  onPressed: () {
-                    final requestId = _generateRequestId();
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            RequestSubmittedPage(requestId: requestId),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.send_outlined, color: Colors.white),
-                  label: const Text(
-                    'Submit Request',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+                  onPressed: _isSubmitting ? null : _submitRequest,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.send_outlined, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text(
+                              'Submit Request',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
               ),
               const SizedBox(height: 24),
-              const _RecentRequests(),
+              _RecentRequests(userId: currentUserId),
             ],
           ),
         ),
@@ -379,7 +443,60 @@ class _ProcessingFeeCard extends StatelessWidget {
 }
 
 class _RecentRequests extends StatelessWidget {
-  const _RecentRequests();
+  const _RecentRequests({required this.userId});
+
+  final String? userId;
+
+  Query<Map<String, dynamic>> _baseQuery() {
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+        .collection('requests')
+        .orderBy('submittedAt', descending: true)
+        .limit(5);
+    if (userId != null) {
+      query = query.where('userId', isEqualTo: userId);
+    }
+    return query;
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'ready':
+      case 'ready for pickup':
+        return const Color(0xFF49C178);
+      case 'processing':
+        return const Color(0xFFE5B546);
+      default:
+        return const Color(0xFF9AA3B9);
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'ready':
+        return 'Ready for Pickup';
+      case 'processing':
+        return 'Processing';
+      default:
+        return 'Submitted';
+    }
+  }
+
+  String _timeAgo(DateTime date) {
+    final diff = DateTime.now().difference(date);
+    if (diff.inDays >= 7) {
+      final weeks = (diff.inDays / 7).floor();
+      return weeks == 1 ? '1 week ago' : '$weeks weeks ago';
+    } else if (diff.inDays >= 1) {
+      return diff.inDays == 1 ? '1 day ago' : '${diff.inDays} days ago';
+    } else if (diff.inHours >= 1) {
+      return diff.inHours == 1 ? '1 hour ago' : '${diff.inHours} hours ago';
+    } else if (diff.inMinutes >= 1) {
+      return diff.inMinutes == 1
+          ? '1 minute ago'
+          : '${diff.inMinutes} minutes ago';
+    }
+    return 'Just now';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -396,33 +513,65 @@ class _RecentRequests extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text(
-            'Recent Requests',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1F1F1F),
-            ),
-          ),
-          SizedBox(height: 16),
-          _RecentRequestTile(
-            title: 'Barangay Clearance',
-            subtitle: 'For employment · 2 days ago',
-            status: 'Ready for Pickup',
-            statusColor: Color(0xFF49C178),
-            icon: Icons.check_circle_outline,
-          ),
-          SizedBox(height: 12),
-          _RecentRequestTile(
-            title: 'Business Permit',
-            subtitle: 'For sari-sari store · 1 week ago',
-            status: 'Processing',
-            statusColor: Color(0xFFE5B546),
-            icon: Icons.timelapse,
-          ),
-        ],
+      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: _baseQuery().snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          if (snapshot.hasError) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text('Unable to load requests right now.'),
+            );
+          }
+
+          final docs = snapshot.data?.docs ?? [];
+          if (docs.isEmpty) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                'No requests yet. Submit a request to see it here.',
+                style: TextStyle(color: Color(0xFF7A8193)),
+              ),
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Recent Requests',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1F1F1F),
+                ),
+              ),
+              const SizedBox(height: 16),
+              ...docs.map((doc) {
+                final data = doc.data();
+                final status = (data['status'] ?? 'submitted').toString();
+                final Timestamp? ts = data['submittedAt'] as Timestamp?;
+                final submittedAt = ts?.toDate() ?? DateTime.now();
+                final purposeText = (data['purpose'] ?? 'No details')
+                    .toString();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _RecentRequestTile(
+                    title: (data['documentType'] ?? 'Document').toString(),
+                    subtitle: '$purposeText · ${_timeAgo(submittedAt)}',
+                    status: _statusLabel(status),
+                    statusColor: _statusColor(status),
+                  ),
+                );
+              }),
+            ],
+          );
+        },
       ),
     );
   }
@@ -434,14 +583,12 @@ class _RecentRequestTile extends StatelessWidget {
     required this.subtitle,
     required this.status,
     required this.statusColor,
-    required this.icon,
   });
 
   final String title;
   final String subtitle;
   final String status;
   final Color statusColor;
-  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -459,7 +606,7 @@ class _RecentRequestTile extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: statusColor),
+            child: Icon(Icons.description_outlined, color: statusColor),
           ),
           const SizedBox(width: 14),
           Expanded(
