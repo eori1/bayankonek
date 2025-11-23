@@ -4,12 +4,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../widgets/app_bottom_nav.dart';
 import 'location_picker_page.dart';
+import 'report_submitted_page.dart';
 
 class ReportIssuePage extends StatefulWidget {
   const ReportIssuePage({super.key});
@@ -42,6 +44,22 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
   final ImagePicker _picker = ImagePicker();
   final LatLng _defaultLatLng = const LatLng(14.5995, 120.9842);
   LatLng? _selectedLatLng;
+
+  @override
+  void initState() {
+    super.initState();
+    _ensureContactPrefix();
+  }
+
+  void _ensureContactPrefix() {
+    const prefix = '+63 ';
+    if (!_contactController.text.startsWith(prefix)) {
+      _contactController.text = prefix;
+      _contactController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _contactController.text.length),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -124,7 +142,11 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
 
       if (!mounted) return;
       _resetForm();
-      _showSnack('Issue submitted successfully!');
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ReportSubmittedPage(issueId: issueId),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
       _showSnack('Failed to submit report: $e');
@@ -139,7 +161,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
     _formKey.currentState?.reset();
     _locationController.clear();
     _descriptionController.clear();
-    _contactController.clear();
+    _contactController.text = '+63 ';
     _selectedCategory = null;
     _photos.clear();
     _selectedLatLng = null;
@@ -541,8 +563,18 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
               controller: _contactController,
               keyboardType: TextInputType.phone,
               decoration: decoration('+63 9XX XXX XXXX'),
-              validator: (value) =>
-                  value == null || value.isEmpty ? 'Contact number is required' : null,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[0-9+\s]')),
+              ],
+              onTap: () => _ensureContactPrefix(),
+              onChanged: (_) => _ensureContactPrefix(),
+              validator: (value) {
+                final digits = value?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+                if (digits.length < 11) {
+                  return 'Enter a valid 11-digit number';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 18),
             const Text(
