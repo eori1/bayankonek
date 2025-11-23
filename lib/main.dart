@@ -1,8 +1,12 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'firebase_options.dart';
+import 'screens/home_page.dart';
 import 'screens/mobile_login_page.dart';
+import 'services/auth_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,8 +36,41 @@ class BayanKonekApp extends StatelessWidget {
   }
 }
 
-class LandingPage extends StatelessWidget {
+class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
+
+  @override
+  State<LandingPage> createState() => _LandingPageState();
+}
+
+class _LandingPageState extends State<LandingPage> {
+  bool _isFacebookLoading = false;
+
+  Future<void> _signInWithFacebook() async {
+    setState(() => _isFacebookLoading = true);
+    try {
+      await AuthService.instance.signInWithFacebook();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      _showError(e.message ?? 'Facebook login failed. Please try again.');
+    } catch (_) {
+      _showError('Facebook login failed. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isFacebookLoading = false);
+      }
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +115,14 @@ class LandingPage extends StatelessWidget {
                       ),
                     );
                   },
+                ),
+                const SizedBox(height: 16),
+                _PrimaryButton(
+                  label: 'Continue with Facebook',
+                  icon: Icons.facebook,
+                  background: const Color(0xFF1E55C4),
+                  onPressed: () => _signInWithFacebook(),
+                  isLoading: _isFacebookLoading,
                 ),
                 const SizedBox(height: 32),
                 Row(
@@ -141,20 +186,31 @@ class _PrimaryButton extends StatelessWidget {
     required this.icon,
     required this.background,
     required this.onPressed,
+    this.isLoading = false,
   });
 
   final String label;
   final IconData icon;
   final Color background;
   final VoidCallback onPressed;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 20),
+        onPressed: isLoading ? null : onPressed,
+        icon: isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Icon(icon, size: 20),
         label: Padding(
           padding: const EdgeInsets.symmetric(vertical: 14),
           child: Text(
