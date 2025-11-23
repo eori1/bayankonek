@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -18,6 +19,9 @@ class ReportIssuePage extends StatefulWidget {
 }
 
 class _ReportIssuePageState extends State<ReportIssuePage> {
+  static const String _osmUserAgent =
+      'BayanKonek/1.0 (support@bayankonek.app)';
+
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
@@ -36,6 +40,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
   bool _isSubmitting = false;
   final List<XFile> _photos = [];
   final ImagePicker _picker = ImagePicker();
+  final LatLng _defaultLatLng = const LatLng(14.5995, 120.9842);
   LatLng? _selectedLatLng;
 
   @override
@@ -185,6 +190,125 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
       SnackBar(
         content: Text(message),
         behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Widget _buildLocationMapPreview() {
+    if (_selectedLatLng == null) {
+      return GestureDetector(
+        onTap: _openLocationPicker,
+        child: Container(
+          height: 170,
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFF4FF),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFD8E4FF)),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.map_outlined, color: Color(0xFF1F6FE3), size: 36),
+              SizedBox(height: 12),
+              Text(
+                'Tap to pin the location on the map',
+                style: TextStyle(
+                  color: Color(0xFF4F596A),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: _openLocationPicker,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: SizedBox(
+          height: 180,
+          child: Stack(
+            children: [
+              FlutterMap(
+                options: MapOptions(
+                  initialCenter: _selectedLatLng ?? _defaultLatLng,
+                  initialZoom: 17,
+                  interactionOptions:
+                      const InteractionOptions(flags: InteractiveFlag.none),
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'ph.bayankonek.app',
+                    tileProvider: NetworkTileProvider(headers: {
+                      'User-Agent': _osmUserAgent,
+                    }),
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _selectedLatLng ?? _defaultLatLng,
+                        width: 40,
+                        height: 40,
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.redAccent,
+                          size: 36,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.45),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    'Tap to adjust pin',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGpsBadge() {
+    if (_selectedLatLng == null) return const SizedBox.shrink();
+    final coords =
+        '${_selectedLatLng!.latitude.toStringAsFixed(4)}, ${_selectedLatLng!.longitude.toStringAsFixed(4)}';
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEAF2FF),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          'GPS captured: $coords',
+          style: const TextStyle(
+            color: Color(0xFF1F6FE3),
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
+        ),
       ),
     );
   }
@@ -361,10 +485,13 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
               ),
             ),
             const SizedBox(height: 8),
+            _buildLocationMapPreview(),
+            _buildGpsBadge(),
+            const SizedBox(height: 12),
             TextFormField(
               controller: _locationController,
               readOnly: false,
-              decoration: decoration('Enter specific location'),
+              decoration: decoration('Describe the exact spot (street, landmark)'),
               validator: (value) =>
                   value == null || value.isEmpty ? 'Location is required' : null,
               maxLines: 2,
@@ -375,7 +502,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
               child: OutlinedButton.icon(
                 onPressed: _openLocationPicker,
                 icon: const Icon(Icons.map_outlined),
-                label: const Text('Select on Map'),
+                label: const Text('Adjust Pin on Map'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF1F6FE3),
                   side: const BorderSide(color: Color(0xFFBFD7FF)),

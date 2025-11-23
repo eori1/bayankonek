@@ -25,6 +25,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
   String? _address;
   bool _isLoading = true;
   bool _isGeocoding = false;
+  bool _isRecentering = false;
 
   @override
   void initState() {
@@ -64,6 +65,28 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     }
   }
 
+  Future<void> _centerOnCurrentLocation() async {
+    setState(() => _isRecentering = true);
+    try {
+      await _ensureLocationPermission();
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      final latLng = LatLng(position.latitude, position.longitude);
+      setState(() {
+        _selectedLatLng = latLng;
+      });
+      _animateTo(latLng);
+      await _reverseGeocode(latLng);
+    } catch (_) {
+      // ignore errors; keep previous pin if lookup fails
+    } finally {
+      if (mounted) {
+        setState(() => _isRecentering = false);
+      }
+    }
+  }
+
   Future<void> _reverseGeocode(LatLng latLng) async {
     setState(() => _isGeocoding = true);
     try {
@@ -92,8 +115,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
       }
     } catch (_) {
       setState(() {
-        _address =
-            '${latLng.latitude.toStringAsFixed(4)}, ${latLng.longitude.toStringAsFixed(4)}';
+        _address = 'Pinned location on map (describe details below)';
       });
     } finally {
       setState(() => _isGeocoding = false);
@@ -144,7 +166,14 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                     TileLayer(
                       urlTemplate:
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.example.app',
+                      userAgentPackageName: 'ph.bayankonek.app',
+                      tileProvider: NetworkTileProvider(
+                        // Custom User-Agent lets OpenStreetMap contact us if needed
+                        headers: {
+                          'User-Agent':
+                              'BayanKonek/1.0 (support@bayankonek.app)',
+                        },
+                      ),
                     ),
                     if (_selectedLatLng != null)
                       MarkerLayer(
@@ -162,6 +191,23 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                         ],
                       ),
                   ],
+                ),
+                Positioned(
+                  bottom: 210,
+                  right: 20,
+                  child: FloatingActionButton.small(
+                    heroTag: 'recenter-location',
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF1F6FE3),
+                    onPressed: _isRecentering ? null : _centerOnCurrentLocation,
+                    child: _isRecentering
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.my_location),
+                  ),
                 ),
                 Positioned(
                   left: 16,
