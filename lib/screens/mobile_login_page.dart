@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../services/auth_service.dart';
 import '../widgets/page_header.dart';
 import '../widgets/primary_gradient_button.dart';
 import 'home_page.dart';
@@ -20,6 +21,7 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
   final TextEditingController _phoneController = TextEditingController();
   final PhoneNumberFormatter _phoneFormatter = PhoneNumberFormatter();
   bool _isSending = false;
+  bool _isFacebookLoading = false;
   String? _errorMessage;
 
   String get _enteredDigits =>
@@ -135,6 +137,33 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
     }
   }
 
+  Future<void> _signInWithFacebook() async {
+    setState(() {
+      _isFacebookLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      await AuthService.instance.signInWithFacebook();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (route) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = e.message ?? 'Facebook login failed. Please try again.';
+      });
+    } catch (_) {
+      setState(() {
+        _errorMessage = 'Facebook login failed. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isFacebookLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -204,6 +233,51 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
                             ),
                           ),
                           const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: _isFacebookLoading
+                                  ? null
+                                  : _signInWithFacebook,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF1877F2),
+                                side: const BorderSide(
+                                  color: Color(0xFF1877F2),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                              ),
+                              child: _isFacebookLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: const [
+                                        Icon(Icons.facebook),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Continue with Facebook',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
                           Text(
                             'Enter your Mobile Number',
                             style: Theme.of(context).textTheme.headlineSmall
@@ -270,7 +344,11 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
                                   child: TextField(
                                     controller: _phoneController,
                                     keyboardType: TextInputType.number,
-                                    inputFormatters: [_phoneFormatter],
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.digitsOnly,
+                                      LengthLimitingTextInputFormatter(10),
+                                      _phoneFormatter,
+                                    ],
                                     onChanged: (_) {
                                       if (_errorMessage != null) {
                                         setState(() {
@@ -324,12 +402,11 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
                           ),
                           const SizedBox(height: 16),
                           Center(
-                            child: TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xFF1E55C4),
-                              ),
-                              child: const Text('Login with facebook instead'),
+                            child: Text(
+                              'Prefer another option later? You’ll soon be able to link your number inside your profile.',
+                              textAlign: TextAlign.center,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: Colors.grey.shade600),
                             ),
                           ),
                         ],

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../widgets/app_bottom_nav.dart';
@@ -55,6 +56,13 @@ class HomePage extends StatelessWidget {
 class _HeroHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final displayName = user?.displayName;
+    final greetingName = (displayName != null && displayName.isNotEmpty)
+        ? displayName.split(' ').first
+        : 'Citizen';
+    final phoneStatus = user?.phoneNumber ?? 'Not linked yet';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -90,7 +98,7 @@ class _HeroHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Elena Santos',
+                      greetingName,
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(
                             color: Colors.white,
@@ -124,6 +132,30 @@ class _HeroHeader extends StatelessWidget {
                 child: _StatCard(title: 'Amount Due', value: '₱230'),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.16),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.phone_android, color: Colors.white.withOpacity(0.9)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Linked number: $phoneStatus',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
