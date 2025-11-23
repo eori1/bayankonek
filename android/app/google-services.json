@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "539768291770",
+    "project_id": "bayankonek2",
+    "storage_bucket": "bayankonek2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:539768291770:android:d79ba9f66aec6d206f5d83",
+        "android_client_info": {
+          "package_name": "com.example.bayankonek"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCK3eKNUIgqGm0PGqRcgY5UIrXtSahNb1g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
