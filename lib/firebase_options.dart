@@ -83,4 +83,5 @@ class DefaultFirebaseOptions {
     authDomain: 'bayankonek2.firebaseapp.com',
     storageBucket: 'bayankonek2.firebasestorage.app',
   );
+
 }

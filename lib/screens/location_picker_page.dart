@@ -111,12 +111,13 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
 
   void _confirmSelection() {
     if (_selectedLatLng == null) return;
-    final address = _address ??
+    final address =
+        _address ??
         '${_selectedLatLng!.latitude.toStringAsFixed(4)}, '
             '${_selectedLatLng!.longitude.toStringAsFixed(4)}';
-    Navigator.of(context).pop(
-      LocationPickerResult(latLng: _selectedLatLng!, address: address),
-    );
+    Navigator.of(
+      context,
+    ).pop(LocationPickerResult(latLng: _selectedLatLng!, address: address));
   }
 
   @override
@@ -141,7 +142,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.app',
                     ),
                     if (_selectedLatLng != null)
@@ -193,9 +195,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                             const SizedBox(height: 6),
                             Text(
                               _address ?? 'Tap on the map to choose a spot.',
-                              style: const TextStyle(
-                                color: Color(0xFF4F596A),
-                              ),
+                              style: const TextStyle(color: Color(0xFF4F596A)),
                             ),
                             if (_isGeocoding)
                               const Padding(
@@ -209,8 +209,9 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed:
-                              _selectedLatLng == null ? null : _confirmSelection,
+                          onPressed: _selectedLatLng == null
+                              ? null
+                              : _confirmSelection,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF1F6FE3),
                             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -235,4 +236,3 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     );
   }
 }
-
