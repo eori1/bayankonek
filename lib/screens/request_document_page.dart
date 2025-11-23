@@ -190,6 +190,16 @@ class _RequestDocumentPageState extends State<RequestDocumentPage> {
 class _ProgressCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final steps = [
+      const _ProgressStep(
+        icon: Icons.send_outlined,
+        label: 'Submit',
+        active: true,
+      ),
+      const _ProgressStep(icon: Icons.access_time, label: 'Process'),
+      const _ProgressStep(icon: Icons.inventory_2_outlined, label: 'Ready'),
+    ];
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
@@ -216,18 +226,19 @@ class _ProgressCard extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              _ProgressStep(
-                icon: Icons.send_outlined,
-                label: 'Submit',
-                active: true,
-              ),
-              _ProgressDivider(),
-              _ProgressStep(icon: Icons.access_time, label: 'Process'),
-              _ProgressDivider(),
-              _ProgressStep(icon: Icons.inventory_2_outlined, label: 'Ready'),
-            ],
+            children: List.generate(steps.length * 2 - 1, (index) {
+              if (index.isEven) {
+                return Expanded(child: steps[index ~/ 2]);
+              } else {
+                return Expanded(
+                  child: Container(
+                    height: 2,
+                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                    color: const Color(0xFFE0E6F0),
+                  ),
+                );
+              }
+            }),
           ),
         ],
       ),
@@ -256,7 +267,7 @@ class _ProgressStep extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: active ? color.withOpacity(0.1) : const Color(0xFFF3F5F9),
+            color: active ? color.withOpacity(0.12) : const Color(0xFFF3F5F9),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: color),
           ),
@@ -272,15 +283,6 @@ class _ProgressStep extends StatelessWidget {
         ),
       ],
     );
-  }
-}
-
-class _ProgressDivider extends StatelessWidget {
-  const _ProgressDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(width: 32, height: 2, color: const Color(0xFFE0E6F0));
   }
 }
 
