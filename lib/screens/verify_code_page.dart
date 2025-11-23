@@ -243,7 +243,9 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
                         borderRadius: BorderRadius.circular(36),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0F1C3D).withOpacity(0.12),
+                            color: const Color(
+                              0xFF0F1C3D,
+                            ).withValues(alpha: 0.12),
                             blurRadius: 40,
                             offset: const Offset(0, 18),
                           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/app_bottom_nav.dart';
+import 'request_document_page.dart';
 
 class ServicesPage extends StatelessWidget {
   const ServicesPage({super.key});
@@ -29,8 +30,8 @@ class ServicesPage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
+          children: [
+            const Text(
               'What would you like to do?',
               style: TextStyle(
                 fontSize: 20,
@@ -38,20 +39,35 @@ class ServicesPage extends StatelessWidget {
                 color: Color(0xFF1F1F1F),
               ),
             ),
-            SizedBox(height: 8),
-            Text(
+            const SizedBox(height: 8),
+            const Text(
               'Choose a service to continue',
               style: TextStyle(fontSize: 15, color: Color(0xFF7A8193)),
             ),
-            SizedBox(height: 24),
+            const SizedBox(height: 24),
             _ServiceActionButton(
               icon: Icons.description_outlined,
               label: 'Request Document',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const RequestDocumentPage(),
+                  ),
+                );
+              },
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             _ServiceActionButton(
               icon: Icons.warning_amber_outlined,
               label: 'Report Issue',
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Issue reporting is coming soon.'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -69,16 +85,21 @@ class ServicesPage extends StatelessWidget {
 }
 
 class _ServiceActionButton extends StatelessWidget {
-  const _ServiceActionButton({required this.icon, required this.label});
+  const _ServiceActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       borderRadius: BorderRadius.circular(20),
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
