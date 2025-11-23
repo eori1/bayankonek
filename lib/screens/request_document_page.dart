@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/app_bottom_nav.dart';
+import 'request_submitted_page.dart';
 
 class RequestDocumentPage extends StatefulWidget {
   const RequestDocumentPage({super.key});
@@ -24,6 +25,15 @@ class _RequestDocumentPageState extends State<RequestDocumentPage> {
     _nameController.dispose();
     _purposeController.dispose();
     super.dispose();
+  }
+
+  String _generateRequestId() {
+    final now = DateTime.now();
+    final sequence = (now.millisecondsSinceEpoch % 1000000).toString().padLeft(
+      6,
+      '0',
+    );
+    return '#DOC-${now.year}-$sequence';
   }
 
   @override
@@ -76,10 +86,11 @@ class _RequestDocumentPageState extends State<RequestDocumentPage> {
                     elevation: 6,
                   ),
                   onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Request submitted for review.'),
-                        behavior: SnackBarBehavior.floating,
+                    final requestId = _generateRequestId();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            RequestSubmittedPage(requestId: requestId),
                       ),
                     );
                   },
