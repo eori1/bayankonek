@@ -79,13 +79,6 @@ class LandingPage extends StatelessWidget {
                     );
                   },
                 ),
-                const SizedBox(height: 16),
-                _PrimaryButton(
-                  label: 'Continue with Facebook',
-                  icon: Icons.facebook,
-                  background: const Color(0xFF1E55C4),
-                  onPressed: () {},
-                ),
                 const SizedBox(height: 32),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
