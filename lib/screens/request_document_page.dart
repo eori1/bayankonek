@@ -449,15 +449,38 @@ class _RecentRequests extends StatelessWidget {
 
   final String? userId;
 
-  Query<Map<String, dynamic>> _baseQuery() {
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-        .collection('Requests')
-        .orderBy('submittedAt', descending: true)
-        .limit(5);
-    if (userId != null) {
-      query = query.where('userId', isEqualTo: userId);
+  Stream<QuerySnapshot<Map<String, dynamic>>> _requestStream() {
+    final collection = FirebaseFirestore.instance.collection('Requests');
+    if (userId == null) {
+      return collection
+          .orderBy('submittedAt', descending: true)
+          .limit(5)
+          .snapshots();
     }
-    return query;
+    // Equality filters do not need an index when we avoid composite ordering,
+    // so we fetch everything for the user and sort client-side.
+    return collection.where('userId', isEqualTo: userId).snapshots();
+  }
+
+  Timestamp _timestampForDoc(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final raw = doc.data()['submittedAt'];
+    if (raw is Timestamp) {
+      return raw;
+    }
+    return Timestamp.fromDate(DateTime.fromMillisecondsSinceEpoch(0));
+  }
+
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _takeRecent(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    if (userId == null) {
+      return docs;
+    }
+    final sorted = [...docs]
+      ..sort(
+        (a, b) => _timestampForDoc(b).compareTo(_timestampForDoc(a)),
+      );
+    return sorted.take(5).toList();
   }
 
   Color _statusColor(String status) {
@@ -516,7 +539,7 @@ class _RecentRequests extends StatelessWidget {
         ],
       ),
       child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _baseQuery().snapshots(),
+        stream: _requestStream(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Padding(
@@ -532,7 +555,7 @@ class _RecentRequests extends StatelessWidget {
             );
           }
 
-          final docs = snapshot.data?.docs ?? [];
+          final docs = _takeRecent(snapshot.data?.docs ?? []);
           if (docs.isEmpty) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),

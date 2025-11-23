@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -9,6 +10,9 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final userId = user?.uid;
+
     void handleNavTap(int index) {
       if (index == 0) return;
       if (index == 1) {
@@ -33,13 +37,13 @@ class HomePage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _HeroHeader(),
+              _HeroHeader(user: user),
               const SizedBox(height: 24),
               const _NotificationsSection(),
               const SizedBox(height: 24),
               const _QuickServicesSection(),
               const SizedBox(height: 24),
-              const _RecentActivitySection(),
+              _RecentActivitySection(userId: userId),
               const SizedBox(height: 32),
             ],
           ),
@@ -54,9 +58,12 @@ class HomePage extends StatelessWidget {
 }
 
 class _HeroHeader extends StatelessWidget {
+  const _HeroHeader({required this.user});
+
+  final User? user;
+
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
     final displayName = user?.displayName;
     final greetingName = (displayName != null && displayName.isNotEmpty)
         ? displayName.split(' ').first
@@ -122,17 +129,7 @@ class _HeroHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          Row(
-            children: const [
-              Expanded(
-                child: _StatCard(title: 'Active Requests', value: '2'),
-              ),
-              SizedBox(width: 16),
-              Expanded(
-                child: _StatCard(title: 'Amount Due', value: '₱230'),
-              ),
-            ],
-          ),
+        _UserStatsRow(userId: user?.uid),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -405,31 +402,255 @@ class _ServiceCard extends StatelessWidget {
 }
 
 class _RecentActivitySection extends StatelessWidget {
-  const _RecentActivitySection();
+  const _RecentActivitySection({required this.userId});
+
+  final String? userId;
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> _activityStream() {
+    final collection = FirebaseFirestore.instance.collection('Requests');
+    if (userId == null) {
+      return collection
+          .orderBy('submittedAt', descending: true)
+          .limit(3)
+          .snapshots();
+    }
+    return collection.where('userId', isEqualTo: userId).snapshots();
+  }
+
+  DateTime _submittedAt(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final raw = doc.data()['submittedAt'];
+    if (raw is Timestamp) {
+      return raw.toDate();
+    }
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+      case 'ready':
+      case 'ready for pickup':
+        return const Color(0xFF3DBE8B);
+      case 'processing':
+      case 'submitted':
+        return const Color(0xFFF1C850);
+      default:
+        return const Color(0xFF7A8193);
+    }
+  }
+
+  String _statusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'Completed';
+      case 'ready':
+      case 'ready for pickup':
+        return 'Ready for Pickup';
+      case 'processing':
+        return 'Processing';
+      default:
+        return 'Submitted';
+    }
+  }
+
+  String _timeAgo(DateTime date) {
+    final diff = DateTime.now().difference(date);
+    if (diff.inDays >= 7) {
+      final weeks = (diff.inDays / 7).floor();
+      return weeks == 1 ? '1 week ago' : '$weeks weeks ago';
+    } else if (diff.inDays >= 1) {
+      return diff.inDays == 1 ? '1 day ago' : '${diff.inDays} days ago';
+    } else if (diff.inHours >= 1) {
+      return diff.inHours == 1 ? '1 hour ago' : '${diff.inHours} hours ago';
+    } else if (diff.inMinutes >= 1) {
+      return diff.inMinutes == 1
+          ? '1 minute ago'
+          : '${diff.inMinutes} minutes ago';
+    }
+    return 'Just now';
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (userId == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          _SectionHeader(title: 'Recent Activity', actionLabel: 'View All'),
+          SizedBox(height: 16),
+          _EmptyActivityCard(message: 'Sign in to see your activity.'),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        _SectionHeader(title: 'Recent Activity', actionLabel: 'View All'),
-        SizedBox(height: 16),
-        _ActivityItem(
-          title: 'Document Request',
-          subtitle: 'Barangay Clearance',
-          timeAgo: '2 days ago',
-          status: 'Processing',
-          statusColor: Color(0xFFF1C850),
-        ),
-        SizedBox(height: 12),
-        _ActivityItem(
-          title: 'Payment Receipt',
-          subtitle: 'Business Permit Fee',
-          timeAgo: '1 week ago',
-          status: 'Completed',
-          statusColor: Color(0xFF3DBE8B),
+      children: [
+        const _SectionHeader(title: 'Recent Activity', actionLabel: 'View All'),
+        const SizedBox(height: 16),
+        StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: _activityStream(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return const _EmptyActivityCard(
+                message: 'Unable to load recent activity.',
+              );
+            }
+            final docs = snapshot.data?.docs ?? [];
+            if (docs.isEmpty) {
+              return const _EmptyActivityCard(
+                message: 'No activity yet. Submit a request to see it here.',
+              );
+            }
+
+            final sorted = [...docs]
+              ..sort(
+                (a, b) => _submittedAt(b).compareTo(_submittedAt(a)),
+              );
+            final recent = sorted.take(3).toList();
+
+            return Column(
+              children: recent.map((doc) {
+                final data = doc.data();
+                final status = (data['status'] ?? 'submitted').toString();
+                final submittedAt = _submittedAt(doc);
+                final subtitle =
+                    (data['documentType'] ?? 'Document').toString();
+                final purpose = data['purpose']?.toString();
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _ActivityItem(
+                    title: subtitle,
+                    subtitle: purpose ?? 'No details provided',
+                    timeAgo: _timeAgo(submittedAt),
+                    status: _statusLabel(status),
+                    statusColor: _statusColor(status),
+                  ),
+                );
+              }).toList(),
+            );
+          },
         ),
       ],
+    );
+  }
+}
+
+class _EmptyActivityCard extends StatelessWidget {
+  const _EmptyActivityCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(color: Color(0xFF7A8193)),
+      ),
+    );
+  }
+}
+
+class _UserStatsRow extends StatelessWidget {
+  const _UserStatsRow({required this.userId});
+
+  final String? userId;
+
+  Stream<QuerySnapshot<Map<String, dynamic>>> _statsStream() {
+    final collection = FirebaseFirestore.instance.collection('Requests');
+    return collection.where('userId', isEqualTo: userId).snapshots();
+  }
+
+  int _activeRequests(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+    return docs.where((doc) {
+      final status = (doc.data()['status'] ?? 'submitted').toString().toLowerCase();
+      return status != 'completed' && status != 'ready' && status != 'ready for pickup';
+    }).length;
+  }
+
+  double _pendingAmount(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+    double total = 0;
+    for (final doc in docs) {
+      final status = (doc.data()['status'] ?? '').toString().toLowerCase();
+      final rawAmount = doc.data()['amountDue'];
+      if (rawAmount is num &&
+          status != 'completed' &&
+          status != 'ready' &&
+          status != 'ready for pickup') {
+        total += rawAmount.toDouble();
+      }
+    }
+    return total;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (userId == null) {
+      return Row(
+        children: const [
+          Expanded(child: _StatCard(title: 'Active Requests', value: '0')),
+          SizedBox(width: 16),
+          Expanded(child: _StatCard(title: 'Amount Due', value: '₱0')),
+        ],
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _statsStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Row(
+            children: const [
+              Expanded(child: _StatCard(title: 'Active Requests', value: '—')),
+              SizedBox(width: 16),
+              Expanded(child: _StatCard(title: 'Amount Due', value: '—')),
+            ],
+          );
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+        final active = _activeRequests(docs);
+        final pendingAmount = _pendingAmount(docs);
+        final amountLabel = pendingAmount == 0
+            ? '₱0'
+            : '₱${pendingAmount.toStringAsFixed(0)}';
+
+        return Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                title: 'Active Requests',
+                value: active.toString(),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _StatCard(
+                title: 'Amount Due',
+                value: amountLabel,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
