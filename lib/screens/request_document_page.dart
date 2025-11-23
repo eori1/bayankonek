@@ -59,7 +59,7 @@ class _RequestDocumentPageState extends State<RequestDocumentPage> {
     final userId = FirebaseAuth.instance.currentUser?.uid;
 
     try {
-      await _firestore.collection('requests').doc(requestId).set({
+      await _firestore.collection('Requests').doc(requestId).set({
         'requestId': requestId,
         'fullName': name,
         'documentType': _selectedDoc,
@@ -451,7 +451,7 @@ class _RecentRequests extends StatelessWidget {
 
   Query<Map<String, dynamic>> _baseQuery() {
     Query<Map<String, dynamic>> query = FirebaseFirestore.instance
-        .collection('requests')
+        .collection('Requests')
         .orderBy('submittedAt', descending: true)
         .limit(5);
     if (userId != null) {
