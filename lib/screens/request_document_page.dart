@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../widgets/app_bottom_nav.dart';
+import 'request_details_page.dart';
 import 'request_submitted_page.dart';
 
 class RequestDocumentPage extends StatefulWidget {
@@ -584,6 +585,9 @@ class _RecentRequests extends StatelessWidget {
                 final submittedAt = ts?.toDate() ?? DateTime.now();
                 final purposeText = (data['purpose'] ?? 'No details')
                     .toString();
+                final detailPayload = Map<String, dynamic>.from(data)
+                  ..putIfAbsent('requestId', () => doc.id)
+                  ..putIfAbsent('submittedAt', () => ts);
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _RecentRequestTile(
@@ -591,6 +595,15 @@ class _RecentRequests extends StatelessWidget {
                     subtitle: '$purposeText · ${_timeAgo(submittedAt)}',
                     status: _statusLabel(status),
                     statusColor: _statusColor(status),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => RequestDetailsPage(
+                            data: detailPayload,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 );
               }),
@@ -608,63 +621,70 @@ class _RecentRequestTile extends StatelessWidget {
     required this.subtitle,
     required this.status,
     required this.statusColor,
+    this.onTap,
   });
 
   final String title;
   final String subtitle;
   final String status;
   final Color statusColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF6F7FB),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6F7FB),
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(Icons.description_outlined, color: statusColor),
             ),
-            child: Icon(Icons.description_outlined, color: statusColor),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1F1F1F),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF1F1F1F),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: Color(0xFF7A8193)),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Color(0xFF7A8193)),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(
+                status,
+                style:
+                    TextStyle(color: statusColor, fontWeight: FontWeight.w600),
+              ),
             ),
-            child: Text(
-              status,
-              style: TextStyle(color: statusColor, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
