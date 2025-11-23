@@ -31,7 +31,7 @@ class RequestDetailsPage extends StatelessWidget {
   DateTime get _expectedCompletion => _submittedAt.add(const Duration(days: 4));
 
   String _formatShortDate(DateTime date) {
-    return DateFormat('MMMM d, yyyy').format(date);
+    return DateFormat('MM/dd/yy').format(date);
   }
 
   Color _statusColor() {
@@ -284,6 +284,8 @@ class _RequestHeaderCard extends StatelessWidget {
                 child: Text(
                   'Ref: $requestId',
                   textAlign: TextAlign.right,
+                  maxLines: 1,
+                  softWrap: false,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF7A8193),

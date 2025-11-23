@@ -1,6 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 
 class ReportDetailsPage extends StatelessWidget {
   const ReportDetailsPage({super.key, required this.data});
@@ -38,6 +43,21 @@ class ReportDetailsPage extends StatelessWidget {
     final photos = data['photoUrls'];
     if (photos is List) return photos;
     return const [];
+  }
+
+  LatLng? _selectedLatLng() {
+    final coords = data['coordinates'];
+    if (coords is GeoPoint) {
+      return LatLng(coords.latitude, coords.longitude);
+    }
+    if (coords is Map) {
+      final lat = coords['latitude'] ?? coords['lat'];
+      final lng = coords['longitude'] ?? coords['lng'];
+      if (lat is num && lng is num) {
+        return LatLng(lat.toDouble(), lng.toDouble());
+      }
+    }
+    return null;
   }
 
   String get _statusLabel {
@@ -122,6 +142,9 @@ class ReportDetailsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final LatLng? coordinates = _selectedLatLng();
+    void openMap() => _openMapPreview(context, coordinates);
+    void openPhoto(int index) => _openPhotoViewer(context, index);
     final timeline = _timeline();
 
     return Scaffold(
@@ -154,10 +177,10 @@ class ReportDetailsPage extends StatelessWidget {
               const SizedBox(height: 18),
               _SectionCard(
                 title: 'Location',
-                child: _DetailTile(
-                  icon: Icons.place_outlined,
-                  primaryText: _location,
-                  secondaryText: 'Pinned via Report Issue form',
+                child: _LocationCard(
+                  location: _location,
+                  coordinates: coordinates,
+                  onTap: coordinates == null ? null : openMap,
                 ),
               ),
               const SizedBox(height: 18),
@@ -185,16 +208,20 @@ class ReportDetailsPage extends StatelessWidget {
                           scrollDirection: Axis.horizontal,
                           itemBuilder: (context, index) {
                             final url = _photoUrls[index]?.toString() ?? '';
-                            return ClipRRect(
-                              borderRadius: BorderRadius.circular(18),
-                              child: AspectRatio(
-                                aspectRatio: 1,
-                                child: Image.network(
-                                  url,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
-                                    color: const Color(0xFFE3E7F1),
-                                    child: const Icon(Icons.image_not_supported),
+                            return GestureDetector(
+                              onTap: () => openPhoto(index),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(18),
+                                child: AspectRatio(
+                                  aspectRatio: 1,
+                                  child: Image.network(
+                                    url,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      color: const Color(0xFFE3E7F1),
+                                      child:
+                                          const Icon(Icons.image_not_supported),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -291,6 +318,73 @@ class ReportDetailsPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LocationCard extends StatelessWidget {
+  const _LocationCard({
+    required this.location,
+    required this.coordinates,
+    this.onTap,
+  });
+
+  final String location;
+  final LatLng? coordinates;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isInteractive = coordinates != null && onTap != null;
+    final content = Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F8FD),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.map_outlined, color: Color(0xFF1F6FE3)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  location,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1F1F1F),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isInteractive
+                      ? 'Tap to view pinned location on map'
+                      : 'Pinned via Report Issue form',
+                  style: const TextStyle(color: Color(0xFF7A8193)),
+                ),
+              ],
+            ),
+          ),
+          if (isInteractive)
+            const Icon(Icons.chevron_right, color: Color(0xFF9AA3B9)),
+        ],
+      ),
+    );
+
+    if (!isInteractive) return content;
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: content,
     );
   }
 }
@@ -619,6 +713,146 @@ class _TimelineRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+extension on ReportDetailsPage {
+  void _openMapPreview(BuildContext context, LatLng? coordinates) {
+    if (coordinates == null) return;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text(
+                  'Pinned Location',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: SizedBox(
+                height: 280,
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: coordinates,
+                    initialZoom: 17,
+                    interactionOptions: const InteractionOptions(
+                      flags: InteractiveFlag.drag |
+                          InteractiveFlag.pinchZoom |
+                          InteractiveFlag.doubleTapZoom,
+                    ),
+                  ),
+                  children: [
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      userAgentPackageName: 'ph.bayankonek.app',
+                    ),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: coordinates,
+                          width: 40,
+                          height: 40,
+                          child: const Icon(
+                            Icons.location_on,
+                            size: 38,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openPhotoViewer(BuildContext context, int index) {
+    final images = _photoUrls.map((e) => e.toString()).toList();
+    if (images.isEmpty) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _PhotoViewerPage(
+          images: images,
+          initialIndex: index,
+        ),
+      ),
+    );
+  }
+}
+
+class _PhotoViewerPage extends StatefulWidget {
+  const _PhotoViewerPage({required this.images, required this.initialIndex});
+
+  final List<String> images;
+  final int initialIndex;
+
+  @override
+  State<_PhotoViewerPage> createState() => _PhotoViewerPageState();
+}
+
+class _PhotoViewerPageState extends State<_PhotoViewerPage> {
+  late final PageController _controller =
+      PageController(initialPage: widget.initialIndex);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          'Photos',
+          style: TextStyle(color: Colors.white),
+        ),
+      ),
+      body: PageView.builder(
+        controller: _controller,
+        itemCount: widget.images.length,
+        itemBuilder: (_, index) {
+          final url = widget.images[index];
+          return InteractiveViewer(
+            child: Center(
+              child: Image.network(
+                url,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.broken_image,
+                  color: Colors.white54,
+                  size: 64,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
