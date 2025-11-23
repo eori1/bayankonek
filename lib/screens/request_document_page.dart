@@ -366,7 +366,7 @@ class _FormSection extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: selectedDoc,
+            initialValue: selectedDoc,
             items: documentTypes
                 .map((doc) => DropdownMenuItem(value: doc, child: Text(doc)))
                 .toList(),

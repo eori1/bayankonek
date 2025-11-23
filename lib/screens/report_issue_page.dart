@@ -4,11 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../widgets/app_bottom_nav.dart';
+import 'location_picker_page.dart';
 
 class ReportIssuePage extends StatefulWidget {
   const ReportIssuePage({super.key});
@@ -34,10 +34,9 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
 
   String? _selectedCategory;
   bool _isSubmitting = false;
-  bool _locationLoading = false;
   final List<XFile> _photos = [];
   final ImagePicker _picker = ImagePicker();
-  Position? _currentPosition;
+  LatLng? _selectedLatLng;
 
   @override
   void dispose() {
@@ -47,67 +46,16 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
     super.dispose();
   }
 
-  Future<void> _pinCurrentLocation() async {
-    setState(() => _locationLoading = true);
-    try {
-      final hasPermission = await _ensureLocationPermission();
-      if (!hasPermission) {
-        _showSnack('Location permission is required to pin your location.');
-        return;
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      _currentPosition = position;
-
-      final placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-      final placemark = placemarks.isNotEmpty ? placemarks.first : null;
-      final buffer = StringBuffer();
-      if (placemark != null) {
-        if ((placemark.street ?? '').isNotEmpty) {
-          buffer.write(placemark.street);
-        }
-        if ((placemark.subLocality ?? '').isNotEmpty) {
-          buffer.write(', ${placemark.subLocality}');
-        }
-        if ((placemark.locality ?? '').isNotEmpty) {
-          buffer.write(', ${placemark.locality}');
-        }
-      }
-      _locationController.text = buffer.isEmpty
-          ? '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}'
-          : buffer.toString();
-    } catch (e) {
-      _showSnack('Failed to get location: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _locationLoading = false);
-      }
+  Future<void> _openLocationPicker() async {
+    final result = await Navigator.of(context).push<LocationPickerResult>(
+      MaterialPageRoute(builder: (_) => const LocationPickerPage()),
+    );
+    if (result != null) {
+      setState(() {
+        _locationController.text = result.address;
+        _selectedLatLng = result.latLng;
+      });
     }
-  }
-
-  Future<bool> _ensureLocationPermission() async {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      _showSnack('Please enable location services.');
-      return false;
-    }
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return false;
-      }
-    }
-    if (permission == LocationPermission.deniedForever) {
-      _showSnack('Location permissions are permanently denied.');
-      return false;
-    }
-    return true;
   }
 
   Future<void> _pickPhoto(ImageSource source) async {
@@ -161,10 +109,10 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
         'status': 'in_progress',
         'createdAt': FieldValue.serverTimestamp(),
         if (userId != null) 'userId': userId,
-        if (_currentPosition != null)
+    if (_selectedLatLng != null)
           'coordinates': GeoPoint(
-            _currentPosition!.latitude,
-            _currentPosition!.longitude,
+            _selectedLatLng!.latitude,
+            _selectedLatLng!.longitude,
           ),
         'photoUrls': photoUrls,
       });
@@ -189,7 +137,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
     _contactController.clear();
     _selectedCategory = null;
     _photos.clear();
-    _currentPosition = null;
+    _selectedLatLng = null;
   }
 
   void _showPhotoOptions() {
@@ -390,7 +338,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedCategory,
+              initialValue: _selectedCategory,
               decoration: decoration('Select issue type'),
               items: _categories
                   .map(
@@ -425,15 +373,9 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
-                onPressed: _locationLoading ? null : _pinCurrentLocation,
-                icon: _locationLoading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.my_location_outlined),
-                label: const Text('Pin Current Location'),
+                onPressed: _openLocationPicker,
+                icon: const Icon(Icons.map_outlined),
+                label: const Text('Select on Map'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF1F6FE3),
                   side: const BorderSide(color: Color(0xFFBFD7FF)),
