@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../widgets/app_bottom_nav.dart';
+import 'report_details_page.dart';
+import 'request_details_page.dart';
 import 'services_page.dart';
 
 class HomePage extends StatelessWidget {
@@ -406,7 +408,7 @@ class _RecentActivitySection extends StatelessWidget {
 
   final String? userId;
 
-  Stream<QuerySnapshot<Map<String, dynamic>>> _activityStream() {
+  Stream<QuerySnapshot<Map<String, dynamic>>> _requestStream() {
     final collection = FirebaseFirestore.instance.collection('Requests');
     if (userId == null) {
       return collection
@@ -417,15 +419,30 @@ class _RecentActivitySection extends StatelessWidget {
     return collection.where('userId', isEqualTo: userId).snapshots();
   }
 
-  DateTime _submittedAt(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-    final raw = doc.data()['submittedAt'];
-    if (raw is Timestamp) {
-      return raw.toDate();
+  Stream<QuerySnapshot<Map<String, dynamic>>> _issueStream() {
+    final collection = FirebaseFirestore.instance.collection('Issues');
+    if (userId == null) {
+      return collection
+          .orderBy('createdAt', descending: true)
+          .limit(3)
+          .snapshots();
     }
+    return collection.where('userId', isEqualTo: userId).snapshots();
+  }
+
+  DateTime _requestDate(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final raw = doc.data()['submittedAt'];
+    if (raw is Timestamp) return raw.toDate();
     return DateTime.fromMillisecondsSinceEpoch(0);
   }
 
-  Color _statusColor(String status) {
+  DateTime _issueDate(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final raw = doc.data()['createdAt'];
+    if (raw is Timestamp) return raw.toDate();
+    return DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  Color _requestStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'completed':
       case 'ready':
@@ -439,7 +456,22 @@ class _RecentActivitySection extends StatelessWidget {
     }
   }
 
-  String _statusLabel(String status) {
+  Color _issueStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'resolved':
+      case 'completed':
+        return const Color(0xFF3DBE8B);
+      case 'in_progress':
+        return const Color(0xFFFFA63F);
+      case 'under_review':
+      case 'approved':
+        return const Color(0xFF4C8DFF);
+      default:
+        return const Color(0xFF7A8193);
+    }
+  }
+
+  String _requestStatusLabel(String status) {
     switch (status.toLowerCase()) {
       case 'completed':
         return 'Completed';
@@ -451,6 +483,70 @@ class _RecentActivitySection extends StatelessWidget {
       default:
         return 'Submitted';
     }
+  }
+
+  String _issueStatusLabel(String status) {
+    switch (status.toLowerCase()) {
+      case 'resolved':
+      case 'completed':
+        return 'Completed';
+      case 'in_progress':
+        return 'In Progress';
+      case 'under_review':
+        return 'Under Review';
+      case 'approved':
+        return 'Approved';
+      default:
+        return 'Submitted';
+    }
+  }
+
+  List<_ActivityRecord> _requestRecords(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    return docs.map((doc) {
+      final data = doc.data();
+      final status = (data['status'] ?? 'submitted').toString();
+      final detailPayload = Map<String, dynamic>.from(data)
+        ..putIfAbsent('requestId', () => doc.id)
+        ..putIfAbsent('submittedAt', () => data['submittedAt']);
+      return _ActivityRecord(
+        type: _ActivityType.request,
+        data: detailPayload,
+        date: _requestDate(doc),
+        title: (data['documentType'] ?? 'Document Request').toString(),
+        subtitle: (data['purpose'] ?? 'No details provided').toString(),
+        status: _requestStatusLabel(status),
+        statusColor: _requestStatusColor(status),
+        icon: Icons.description_outlined,
+        iconBg: const Color(0xFFE8F3FF),
+        iconColor: const Color(0xFF1F85D5),
+      );
+    }).toList();
+  }
+
+  List<_ActivityRecord> _issueRecords(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    return docs.map((doc) {
+      final data = doc.data();
+      final status = (data['status'] ?? 'submitted').toString();
+      final detailPayload = Map<String, dynamic>.from(data)
+        ..putIfAbsent('issueId', () => doc.id)
+        ..putIfAbsent('createdAt', () => data['createdAt']);
+      return _ActivityRecord(
+        type: _ActivityType.issue,
+        data: detailPayload,
+        date: _issueDate(doc),
+        title: (data['category'] ?? 'Reported Issue').toString(),
+        subtitle: (data['location'] ?? 'No location provided').toString(),
+        status: _issueStatusLabel(status),
+        statusColor: _issueStatusColor(status),
+        icon: Icons.warning_amber_outlined,
+        iconBg: const Color(0xFFFFF2E6),
+        iconColor: const Color(0xFFEE7A35),
+      );
+    }).toList();
   }
 
   String _timeAgo(DateTime date) {
@@ -489,49 +585,78 @@ class _RecentActivitySection extends StatelessWidget {
         const _SectionHeader(title: 'Recent Activity', actionLabel: 'View All'),
         const SizedBox(height: 16),
         StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: _activityStream(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+          stream: _requestStream(),
+          builder: (context, requestSnapshot) {
+            if (requestSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (snapshot.hasError) {
+            if (requestSnapshot.hasError) {
               return const _EmptyActivityCard(
                 message: 'Unable to load recent activity.',
               );
             }
-            final docs = snapshot.data?.docs ?? [];
-            if (docs.isEmpty) {
-              return const _EmptyActivityCard(
-                message: 'No activity yet. Submit a request to see it here.',
-              );
-            }
 
-            final sorted = [...docs]
-              ..sort(
-                (a, b) => _submittedAt(b).compareTo(_submittedAt(a)),
-              );
-            final recent = sorted.take(3).toList();
+            final requestDocs = requestSnapshot.data?.docs ?? [];
 
-            return Column(
-              children: recent.map((doc) {
-                final data = doc.data();
-                final status = (data['status'] ?? 'submitted').toString();
-                final submittedAt = _submittedAt(doc);
-                final subtitle =
-                    (data['documentType'] ?? 'Document').toString();
-                final purpose = data['purpose']?.toString();
+            return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: _issueStream(),
+              builder: (context, issueSnapshot) {
+                if (issueSnapshot.connectionState == ConnectionState.waiting &&
+                    requestDocs.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _ActivityItem(
-                    title: subtitle,
-                    subtitle: purpose ?? 'No details provided',
-                    timeAgo: _timeAgo(submittedAt),
-                    status: _statusLabel(status),
-                    statusColor: _statusColor(status),
-                  ),
+                final records = [
+                  ..._requestRecords(requestDocs),
+                  if (!issueSnapshot.hasError)
+                    ..._issueRecords(issueSnapshot.data?.docs ?? []),
+                ];
+
+                if (records.isEmpty) {
+                  return const _EmptyActivityCard(
+                    message:
+                        'No activity yet. Submit a request or report to see it here.',
+                  );
+                }
+
+                records.sort((a, b) => b.date.compareTo(a.date));
+                final recent = records.take(3).toList();
+
+                return Column(
+                  children: recent.map((record) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _ActivityItem(
+                        title: record.title,
+                        subtitle: record.subtitle,
+                        timeAgo: _timeAgo(record.date),
+                        status: record.status,
+                        statusColor: record.statusColor,
+                        icon: record.icon,
+                        iconBg: record.iconBg,
+                        iconColor: record.iconColor,
+                        onTap: () {
+                          if (record.type == _ActivityType.request) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    RequestDetailsPage(data: record.data),
+                              ),
+                            );
+                          } else {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    ReportDetailsPage(data: record.data),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    );
+                  }).toList(),
                 );
-              }).toList(),
+              },
             );
           },
         ),
@@ -567,6 +692,34 @@ class _EmptyActivityCard extends StatelessWidget {
       ),
     );
   }
+}
+
+enum _ActivityType { request, issue }
+
+class _ActivityRecord {
+  const _ActivityRecord({
+    required this.type,
+    required this.data,
+    required this.date,
+    required this.title,
+    required this.subtitle,
+    required this.status,
+    required this.statusColor,
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+  });
+
+  final _ActivityType type;
+  final Map<String, dynamic> data;
+  final DateTime date;
+  final String title;
+  final String subtitle;
+  final String status;
+  final Color statusColor;
+  final IconData icon;
+  final Color iconBg;
+  final Color iconColor;
 }
 
 class _UserStatsRow extends StatelessWidget {
@@ -662,6 +815,10 @@ class _ActivityItem extends StatelessWidget {
     required this.timeAgo,
     required this.status,
     required this.statusColor,
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    this.onTap,
   });
 
   final String title;
@@ -669,86 +826,94 @@ class _ActivityItem extends StatelessWidget {
   final String timeAgo;
   final String status;
   final Color statusColor;
+  final IconData icon;
+  final Color iconBg;
+  final Color iconColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F3FF),
-              borderRadius: BorderRadius.circular(18),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
             ),
-            child: const Icon(
-              Icons.insert_drive_file_outlined,
-              color: Color(0xFF1F85D5),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(icon, color: iconColor),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFF5A6272),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.access_time,
-                      size: 14,
-                      color: Color(0xFF9AA3B9),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      timeAgo,
-                      style: const TextStyle(
-                        fontSize: 13,
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFF5A6272),
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.access_time,
+                        size: 14,
                         color: Color(0xFF9AA3B9),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 4),
+                      Text(
+                        timeAgo,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF9AA3B9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(18),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Text(
+                status,
+                style:
+                    TextStyle(fontWeight: FontWeight.w600, color: statusColor),
+              ),
             ),
-            child: Text(
-              status,
-              style: TextStyle(fontWeight: FontWeight.w600, color: statusColor),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
