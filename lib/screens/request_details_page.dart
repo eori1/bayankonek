@@ -263,7 +263,6 @@ class _RequestHeaderCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
                 padding:
@@ -280,11 +279,16 @@ class _RequestHeaderCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
-                'Ref: $requestId',
-                style: const TextStyle(
-                  color: Color(0xFF7A8193),
-                  fontWeight: FontWeight.w600,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Ref: $requestId',
+                  textAlign: TextAlign.right,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF7A8193),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -466,25 +470,34 @@ class _TimelineRow extends StatelessWidget {
   }
 
   Widget _buildIndicator() {
-    if (event.status == _TimelineStatus.pending) {
-      return Container(
-        width: 16,
-        height: 16,
-        decoration: const BoxDecoration(
-          color: Color(0xFFE0E6F0),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.access_time, size: 12, color: Color(0xFF9AA3B9)),
-      );
-    }
+    final bool isPending = event.status == _TimelineStatus.pending;
+    final double size = 28;
+    final Color borderColor =
+        isPending ? const Color(0xFFE0E6F0) : _color;
+    final Color fillColor =
+        isPending ? Colors.white : _color.withOpacity(0.15);
+
     return Container(
-      width: 20,
-      height: 20,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        color: _color,
+        color: fillColor,
         shape: BoxShape.circle,
+        border: Border.all(color: borderColor, width: 2),
+        boxShadow: [
+          if (!isPending)
+            BoxShadow(
+              color: _color.withOpacity(0.25),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+        ],
       ),
-      child: const Icon(Icons.check, size: 12, color: Colors.white),
+      child: Icon(
+        isPending ? Icons.access_time : Icons.check,
+        size: 16,
+        color: isPending ? const Color(0xFF9AA3B9) : _color,
+      ),
     );
   }
 
@@ -498,9 +511,14 @@ class _TimelineRow extends StatelessWidget {
             _buildIndicator(),
             if (!isLast)
               Container(
-                width: 2,
-                height: 50,
-                color: const Color(0xFFE0E6F0),
+                width: 3,
+                height: 56,
+                margin: const EdgeInsets.symmetric(vertical: 6),
+                decoration: BoxDecoration(
+                  color: event.status == _TimelineStatus.pending
+                      ? const Color(0xFFE7EBF3)
+                      : _color.withOpacity(0.35),
+                ),
               ),
           ],
         ),

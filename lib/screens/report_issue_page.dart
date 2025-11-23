@@ -218,93 +218,122 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
 
   Widget _buildLocationMapPreview() {
     if (_selectedLatLng == null) {
-      return GestureDetector(
-        onTap: _openLocationPicker,
-        child: Container(
-          height: 170,
-          decoration: BoxDecoration(
-            color: const Color(0xFFEFF4FF),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFD8E4FF)),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Icon(Icons.map_outlined, color: Color(0xFF1F6FE3), size: 36),
-              SizedBox(height: 12),
-              Text(
-                'Tap to pin the location on the map',
-                style: TextStyle(
-                  color: Color(0xFF4F596A),
-                  fontWeight: FontWeight.w600,
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: _openLocationPicker,
+          child: Ink(
+            height: 190,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF4FF),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFCAD8F5)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1F6FE3).withOpacity(0.08),
+                  blurRadius: 18,
+                  offset: const Offset(0, 10),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.map_outlined, color: Color(0xFF1F6FE3), size: 42),
+                SizedBox(height: 14),
+                Text(
+                  'Tap to pin the location on the map',
+                  style: TextStyle(
+                    color: Color(0xFF3D4A63),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
-    return GestureDetector(
-      onTap: _openLocationPicker,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: SizedBox(
-          height: 180,
-          child: Stack(
-            children: [
-              FlutterMap(
-                options: MapOptions(
-                  initialCenter: _selectedLatLng ?? _defaultLatLng,
-                  initialZoom: 17,
-                  interactionOptions:
-                      const InteractionOptions(flags: InteractiveFlag.none),
-                ),
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: _openLocationPicker,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: SizedBox(
+              height: 190,
+              child: Stack(
                 children: [
-                  TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'ph.bayankonek.app',
-                    tileProvider: NetworkTileProvider(headers: {
-                      'User-Agent': _osmUserAgent,
-                    }),
-                  ),
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: _selectedLatLng ?? _defaultLatLng,
-                        width: 40,
-                        height: 40,
-                        child: const Icon(
-                          Icons.location_on,
-                          color: Colors.redAccent,
-                          size: 36,
-                        ),
+                  FlutterMap(
+                    options: MapOptions(
+                      initialCenter: _selectedLatLng ?? _defaultLatLng,
+                      initialZoom: 17,
+                      interactionOptions:
+                          const InteractionOptions(flags: InteractiveFlag.none),
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'ph.bayankonek.app',
+                        tileProvider: NetworkTileProvider(headers: {
+                          'User-Agent': _osmUserAgent,
+                        }),
+                      ),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: _selectedLatLng ?? _defaultLatLng,
+                            width: 40,
+                            height: 40,
+                            child: const Icon(
+                              Icons.location_on,
+                              color: Colors.redAccent,
+                              size: 36,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.45),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'Tap to adjust pin',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.45),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'Tap to adjust pin',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
