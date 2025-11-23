@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/app_bottom_nav.dart';
+import 'report_issue_page.dart';
 import 'request_document_page.dart';
 
 class ServicesPage extends StatelessWidget {
@@ -61,10 +62,9 @@ class ServicesPage extends StatelessWidget {
               icon: Icons.warning_amber_outlined,
               label: 'Report Issue',
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Issue reporting is coming soon.'),
-                    behavior: SnackBarBehavior.floating,
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const ReportIssuePage(),
                   ),
                 );
               },
