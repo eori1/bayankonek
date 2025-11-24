@@ -1,3 +1,16 @@
+import java.util.Properties
+
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.reader(Charsets.UTF_8).use { load(it) }
+    }
+}
+
+val facebookAppId = localProperties.getProperty("facebook.appId").orEmpty()
+val facebookClientToken = localProperties.getProperty("facebook.clientToken").orEmpty()
+val facebookLoginScheme = facebookAppId.takeIf { it.isNotBlank() }?.let { "fb$it" }.orEmpty()
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -29,6 +42,14 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        resValue("string", "facebook_app_id", facebookAppId)
+        resValue("string", "facebook_client_token", facebookClientToken)
+        resValue("string", "fb_login_protocol_scheme", facebookLoginScheme)
+
+        manifestPlaceholders["facebook_app_id"] = facebookAppId
+        manifestPlaceholders["facebook_client_token"] = facebookClientToken
+        manifestPlaceholders["fb_login_protocol_scheme"] = facebookLoginScheme
     }
 
     buildTypes {

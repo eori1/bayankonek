@@ -1,8 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">bayankonek</string>
-    <string name="facebook_app_id">2272746056471616</string>
-    <string name="fb_login_protocol_scheme">fb2272746056471616</string>
-    <string name="facebook_client_token">3d750b6f9ef1a7e9c5205b19616d3997</string>
 </resources>
-
