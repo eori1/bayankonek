@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../widgets/app_bottom_nav.dart';
+import 'community_page.dart';
 import 'report_details_page.dart';
 import 'request_details_page.dart';
 import 'services_page.dart';
@@ -21,6 +22,10 @@ class HomePage extends StatelessWidget {
         Navigator.of(
           context,
         ).push(MaterialPageRoute(builder: (_) => const ServicesPage()));
+      } else if (index == 2) {
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const CommunityPage()));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
