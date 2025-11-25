@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 
 import '../widgets/page_header.dart';
 import '../widgets/primary_gradient_button.dart';
-import 'home_page.dart';
 
 class VerifyCodePage extends StatefulWidget {
   const VerifyCodePage({
@@ -80,10 +79,7 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
     try {
       await FirebaseAuth.instance.signInWithCredential(credential);
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-        (route) => false,
-      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -106,10 +102,7 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
 
     if (widget.testCode != null) {
       if (code == widget.testCode) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomePage()),
-          (route) => false,
-        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
       } else {
         setState(() {
           _errorMessage = 'Incorrect code for test number.';
@@ -130,10 +123,7 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
       );
       await FirebaseAuth.instance.signInWithCredential(credential);
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-        (route) => false,
-      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       setState(() {

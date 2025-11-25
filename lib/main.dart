@@ -31,7 +31,29 @@ class BayanKonekApp extends StatelessWidget {
           displayColor: const Color(0xFF1E1E1E),
         ),
       ),
-      home: const LandingPage(),
+      home: const AuthGate(),
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasData) {
+          return const HomePage();
+        }
+        return const LandingPage();
+      },
     );
   }
 }
@@ -50,11 +72,6 @@ class _LandingPageState extends State<LandingPage> {
     setState(() => _isFacebookLoading = true);
     try {
       await AuthService.instance.signInWithFacebook();
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-        (route) => false,
-      );
     } on FirebaseAuthException catch (e) {
       _showError(e.message ?? 'Facebook login failed. Please try again.');
     } catch (_) {

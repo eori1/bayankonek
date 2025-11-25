@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 
 import '../widgets/page_header.dart';
 import '../widgets/primary_gradient_button.dart';
-import 'home_page.dart';
 import 'verify_code_page.dart';
 
 const Map<String, String> _testNumbers = {'+639272739414': '123123'};
@@ -35,10 +34,7 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
     try {
       await FirebaseAuth.instance.signInWithCredential(credential);
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const HomePage()),
-        (route) => false,
-      );
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (_) {
       if (!mounted) return;
       setState(() {

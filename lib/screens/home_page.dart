@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../widgets/app_bottom_nav.dart';
 import 'community_page.dart';
 import 'payments_page.dart';
+import 'profile_page.dart';
 import 'report_details_page.dart';
 import 'request_details_page.dart';
 import 'services_page.dart';
@@ -75,7 +76,7 @@ class _HomePageState extends State<HomePage> {
           const ServicesPage(embedded: true),
           const CommunityPage(embedded: true),
           const PaymentsPage(embedded: true),
-          const _ComingSoonTab(label: 'Profile'),
+          const ProfilePage(embedded: true),
         ],
       ),
       bottomNavigationBar: AppBottomNav(
@@ -951,39 +952,6 @@ class _ActivityItem extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ComingSoonTab extends StatelessWidget {
-  const _ComingSoonTab({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return ColoredBox(
-      color: const Color(0xFFF2F4FA),
-      child: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.construction_outlined,
-                  size: 48, color: Colors.grey.shade500),
-              const SizedBox(height: 12),
-              Text(
-                '$label tab is coming soon.',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: const Color(0xFF6B6F7F),
-                      fontWeight: FontWeight.w600,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
         ),
       ),
     );
