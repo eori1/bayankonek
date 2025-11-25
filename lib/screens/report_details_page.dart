@@ -3,9 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:intl/intl.dart';
-import 'package:latlong2/latlong.dart';
 
 class ReportDetailsPage extends StatelessWidget {
   const ReportDetailsPage({super.key, required this.data});
@@ -414,7 +411,7 @@ class _HeaderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 12),
           ),
@@ -429,7 +426,7 @@ class _HeaderCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.18),
+                  color: statusColor.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -530,7 +527,7 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, 12),
           ),
@@ -660,7 +657,7 @@ class _TimelineRow extends StatelessWidget {
               decoration: BoxDecoration(
                 color: event.status == _TimelineStatus.pending
                     ? Colors.white
-                    : indicatorColor.withOpacity(0.15),
+                    : indicatorColor.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
                 border: Border.all(color: indicatorColor, width: 2),
               ),

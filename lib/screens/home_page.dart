@@ -8,6 +8,7 @@ import '../utils/activity_utils.dart';
 import '../widgets/app_bottom_nav.dart';
 import 'all_activity_page.dart';
 import 'community_page.dart';
+import 'notifications_page.dart';
 import 'payment_receipt_page.dart';
 import 'payments_page.dart';
 import 'profile_page.dart';
@@ -43,8 +44,8 @@ class _HomePageState extends State<HomePage> {
     setState(() => _currentIndex = index);
     _pageController.animateToPage(
       index,
-      duration: const Duration(milliseconds: 280),
-      curve: Curves.easeOutCubic,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOutCubic,
     );
   }
 
@@ -302,6 +303,15 @@ class _NotificationsSection extends StatelessWidget {
                       color: const Color(0xFF1F1F1F),
                     ),
               ),
+              const Spacer(),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const NotificationsPage()),
+                  );
+                },
+                child: const Text('View All'),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -353,7 +363,7 @@ class _HomeNotificationTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: data.color.withOpacity(0.15),
+              color: data.color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(data.icon, color: data.color),
@@ -390,7 +400,7 @@ class _HomeNotificationTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: data.color.withOpacity(0.15),
+              color: data.color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -525,15 +535,10 @@ class _RecentActivitySection extends StatelessWidget {
   Stream<QuerySnapshot<Map<String, dynamic>>> _paymentStream() {
     final collection = FirebaseFirestore.instance.collection('Payments');
     if (userId == null) {
-      return collection
-          .orderBy('paidAt', descending: true)
-          .limit(3)
-          .snapshots();
+      return collection.snapshots();
     }
     return collection
         .where('userId', isEqualTo: userId)
-        .orderBy('paidAt', descending: true)
-        .limit(5)
         .snapshots();
   }
 

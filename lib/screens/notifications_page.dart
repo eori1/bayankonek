@@ -54,7 +54,7 @@ class NotificationsPage extends StatelessWidget {
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
               leading: CircleAvatar(
-                backgroundColor: item.color.withOpacity(0.15),
+                backgroundColor: item.color.withValues(alpha: 0.15),
                 child: Icon(Icons.notifications, color: item.color),
               ),
               title: Text(
@@ -75,7 +75,7 @@ class NotificationsPage extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: item.color.withOpacity(0.15),
+                          color: item.color.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Text(

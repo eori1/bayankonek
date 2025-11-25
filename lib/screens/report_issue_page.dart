@@ -231,7 +231,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
               border: Border.all(color: const Color(0xFFCAD8F5)),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF1F6FE3).withOpacity(0.08),
+                  color: const Color(0xFF1F6FE3).withValues(alpha: 0.08),
                   blurRadius: 18,
                   offset: const Offset(0, 10),
                 ),
@@ -267,7 +267,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 16,
                 offset: const Offset(0, 12),
               ),
@@ -318,7 +318,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
                       padding:
                           const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.45),
+                        color: Colors.black.withValues(alpha: 0.45),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
@@ -486,7 +486,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 18,
               offset: const Offset(0, 12),
             ),
@@ -827,7 +827,7 @@ class _RecentReportsList extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 18,
             offset: const Offset(0, 12),
           ),
@@ -947,7 +947,7 @@ class _ReportTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
+              color: statusColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(14),
             ),
             child: Text(

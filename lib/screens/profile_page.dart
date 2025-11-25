@@ -25,6 +25,7 @@ class _ProfilePageState extends State<ProfilePage> {
   final _storage = FirebaseStorage.instance;
   final _picker = ImagePicker();
   bool _uploadingPhoto = false;
+  File? _localAvatarFile;
 
   CollectionReference<Map<String, dynamic>> get _userCollection =>
       _firestore.collection('Users');
@@ -69,9 +70,12 @@ class _ProfilePageState extends State<ProfilePage> {
     final picked =
         await _picker.pickImage(source: ImageSource.gallery, imageQuality: 75);
     if (picked == null) return;
-    setState(() => _uploadingPhoto = true);
+    setState(() {
+      _localAvatarFile = File(picked.path);
+      _uploadingPhoto = true;
+    });
     try {
-      final file = File(picked.path);
+      final file = _localAvatarFile!;
       final ref =
           _storage.ref().child('profile_photos/${user.uid}/avatar.jpg');
       await ref.putFile(file);
@@ -83,6 +87,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to upload photo: $e')),
       );
+      setState(() => _localAvatarFile = null);
     } finally {
       if (mounted) {
         setState(() => _uploadingPhoto = false);
@@ -423,6 +428,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   residentId: residentId,
                   photoUrl: photoUrl,
                   uploadingPhoto: _uploadingPhoto,
+                  localAvatar: _localAvatarFile,
                   onChangePhoto: () => _pickProfilePhoto(user, profile),
                   onEdit: () => _openEditProfileSheet(user, profile),
                 ),
@@ -567,6 +573,7 @@ class _ProfileHeader extends StatelessWidget {
     required this.name,
     required this.residentId,
     required this.photoUrl,
+    required this.localAvatar,
     required this.uploadingPhoto,
     required this.onChangePhoto,
     required this.onEdit,
@@ -575,6 +582,7 @@ class _ProfileHeader extends StatelessWidget {
   final String name;
   final String residentId;
   final String photoUrl;
+  final File? localAvatar;
   final bool uploadingPhoto;
   final VoidCallback onChangePhoto;
   final VoidCallback onEdit;
@@ -602,14 +610,25 @@ class _ProfileHeader extends StatelessWidget {
               const SizedBox(height: 16),
               Stack(
                 children: [
-                  CircleAvatar(
-                    radius: 48,
-                    backgroundColor: Colors.white,
-                    backgroundImage:
-                        photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
-                    child: photoUrl.isEmpty
-                        ? const Icon(Icons.person_outline, size: 48, color: Color(0xFF1F75FF))
-                        : null,
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: CircleAvatar(
+                      key: ValueKey(localAvatar?.path ?? photoUrl),
+                      radius: 50,
+                      backgroundColor: Colors.white,
+                      backgroundImage: localAvatar != null
+                          ? FileImage(localAvatar!)
+                          : (photoUrl.isNotEmpty
+                              ? NetworkImage(photoUrl)
+                              : null) as ImageProvider<Object>?,
+                      child: localAvatar == null && photoUrl.isEmpty
+                          ? const Icon(
+                              Icons.person_outline,
+                              size: 48,
+                              color: Color(0xFF1F75FF),
+                            )
+                          : null,
+                    ),
                   ),
                   Positioned(
                     bottom: 0,

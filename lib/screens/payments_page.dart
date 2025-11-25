@@ -42,9 +42,13 @@ class _PaymentsPageState extends State<PaymentsPage> {
     return _firestore
         .collection('Payments')
         .where('userId', isEqualTo: userId)
-        .orderBy('paidAt', descending: true)
-        .limit(5)
         .snapshots();
+  }
+
+  DateTime _timestampFrom(dynamic raw) {
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is DateTime) return raw;
+    return DateTime.fromMillisecondsSinceEpoch(0);
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>?> _payRequest(
@@ -181,6 +185,12 @@ class _PaymentsPageState extends State<PaymentsPage> {
           stream: _recentPayments(userId),
           builder: (context, recentSnapshot) {
             final recentDocs = recentSnapshot.data?.docs ?? [];
+            final sortedPayments = List.of(recentDocs)
+              ..sort(
+                (a, b) => _timestampFrom(b.data()['paidAt'])
+                    .compareTo(_timestampFrom(a.data()['paidAt'])),
+              );
+            final paymentList = sortedPayments.take(5).toList();
 
             return _PaymentsScaffold(
               embedded: widget.embedded,
@@ -217,11 +227,11 @@ class _PaymentsPageState extends State<PaymentsPage> {
                     const SizedBox(height: 8),
                     const _SectionTitle(title: 'Recent Payments'),
                     const SizedBox(height: 12),
-                    if (recentDocs.isEmpty)
+                    if (paymentList.isEmpty)
                       const _EmptyState(message: 'No payments recorded yet.')
                     else
                       Column(
-                        children: recentDocs
+                        children: paymentList
                             .map(
                               (doc) => Padding(
                                 padding: const EdgeInsets.only(bottom: 12),

@@ -34,7 +34,7 @@ class PrimaryGradientButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF1E55C4).withOpacity(0.35),
+                color: const Color(0xFF1E55C4).withValues(alpha: 0.35),
                 blurRadius: 18,
                 offset: const Offset(0, 10),
               ),

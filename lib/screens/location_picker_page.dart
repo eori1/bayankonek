@@ -37,7 +37,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     try {
       await _ensureLocationPermission();
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
       );
       final latLng = LatLng(position.latitude, position.longitude);
       setState(() {
@@ -70,7 +71,8 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
     try {
       await _ensureLocationPermission();
       final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
       );
       final latLng = LatLng(position.latitude, position.longitude);
       setState(() {
@@ -222,7 +224,7 @@ class _LocationPickerPageState extends State<LocationPickerPage> {
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
+                              color: Colors.black.withValues(alpha: 0.15),
                               blurRadius: 12,
                               offset: const Offset(0, 4),
                             ),

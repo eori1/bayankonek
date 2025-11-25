@@ -168,7 +168,7 @@ class _ActivityStatsRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 20,
             offset: const Offset(0, 12),
           ),
@@ -290,7 +290,7 @@ class _ActivityHistoryTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 12,
               offset: const Offset(0, 8),
             ),
@@ -340,7 +340,7 @@ class _ActivityHistoryTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: record.statusColor.withOpacity(0.15),
+                color: record.statusColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
