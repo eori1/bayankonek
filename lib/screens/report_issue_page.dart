@@ -237,19 +237,26 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
                 ),
               ],
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.map_outlined, color: Color(0xFF1F6FE3), size: 42),
-                SizedBox(height: 14),
-                Text(
-                  'Tap to pin the location on the map',
-                  style: TextStyle(
-                    color: Color(0xFF3D4A63),
-                    fontWeight: FontWeight.w700,
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.map_outlined, color: Color(0xFF1F6FE3), size: 42),
+                  SizedBox(height: 14),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      'Tap to pin the location on the map',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF3D4A63),
+                        fontWeight: FontWeight.w700,
+                        height: 1.25,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

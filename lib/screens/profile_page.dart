@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -432,7 +433,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   onChangePhoto: () => _pickProfilePhoto(user, profile),
                   onEdit: () => _openEditProfileSheet(user, profile),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 100),
                 StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                   stream: requestsStream,
                   builder: (context, requestSnapshot) {
@@ -589,6 +590,13 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    ImageProvider<Object>? avatarProvider;
+    if (localAvatar != null) {
+      avatarProvider = FileImage(localAvatar!);
+    } else if (photoUrl.isNotEmpty) {
+      avatarProvider = CachedNetworkImageProvider(photoUrl);
+    }
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -616,12 +624,8 @@ class _ProfileHeader extends StatelessWidget {
                       key: ValueKey(localAvatar?.path ?? photoUrl),
                       radius: 50,
                       backgroundColor: Colors.white,
-                      backgroundImage: localAvatar != null
-                          ? FileImage(localAvatar!)
-                          : (photoUrl.isNotEmpty
-                              ? NetworkImage(photoUrl)
-                              : null) as ImageProvider<Object>?,
-                      child: localAvatar == null && photoUrl.isEmpty
+                      backgroundImage: avatarProvider,
+                      child: avatarProvider == null
                           ? const Icon(
                               Icons.person_outline,
                               size: 48,
@@ -746,7 +750,7 @@ class _StatsRow extends StatelessWidget {
           Expanded(
             child: _StatCard(
               icon: Icons.verified_outlined,
-              label: 'Completed',
+              label: 'Completed Requests',
               value: completed.toString(),
             ),
           ),
