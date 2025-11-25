@@ -26,6 +26,12 @@ class _ProfilePageState extends State<ProfilePage> {
   CollectionReference<Map<String, dynamic>> get _userCollection =>
       _firestore.collection('Users');
 
+  void _showSnack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _ensureProfileExists(User user) async {
     final doc = await _userCollection.doc(user.uid).get();
     if (!doc.exists) {
@@ -63,7 +69,8 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() => _uploadingPhoto = true);
     try {
       final file = File(picked.path);
-      final ref = _storage.ref().child('profile_photos/${user.uid}.jpg');
+      final ref =
+          _storage.ref().child('profile_photos/${user.uid}/avatar.jpg');
       await ref.putFile(file);
       final url = await ref.getDownloadURL();
       await user.updatePhotoURL(url);
@@ -92,15 +99,6 @@ class _ProfilePageState extends State<ProfilePage> {
         TextEditingController(text: profile['residentId'] ?? '#RES-${user.uid.substring(0, 6).toUpperCase()}');
     final addressController =
         TextEditingController(text: profile['address'] ?? '');
-
-    String _normalizePhone(String raw) {
-      String digits = raw.replaceAll(RegExp(r'[\s-]'), '');
-      if (digits.startsWith('+')) return digits;
-      digits = digits.replaceAll(RegExp(r'[^0-9]'), '');
-      if (digits.startsWith('63')) return '+$digits';
-      if (digits.startsWith('0')) return '+63${digits.substring(1)}';
-      return '+63$digits';
-    }
 
     await showModalBottomSheet(
       context: context,
@@ -174,14 +172,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     if (nameController.text.trim().isNotEmpty) {
                       await user.updateDisplayName(nameController.text.trim());
                     }
-                    if (emailController.text.trim().isNotEmpty &&
-                        emailController.text.trim() != user.email) {
-                      try {
-                        await user.updateEmail(emailController.text.trim());
-                      } catch (_) {}
-                    }
                     if (!mounted) return;
-                    Navigator.of(ctx).pop();
+                    _showSnack('Profile updated');
+                    Navigator.of(context).pop();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1F75FF),
@@ -213,6 +206,14 @@ class _ProfilePageState extends State<ProfilePage> {
     bool isSending = false;
     bool codeSent = false;
 
+    String normalizePhone(String raw) {
+      String digits = raw.replaceAll(RegExp(r'[^0-9+]'), '');
+      if (digits.startsWith('+')) return digits;
+      if (digits.startsWith('63')) return '+$digits';
+      if (digits.startsWith('0')) return '+63${digits.substring(1)}';
+      return '+63$digits';
+    }
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -225,7 +226,7 @@ class _ProfilePageState extends State<ProfilePage> {
               Future<void> sendCode() async {
               final raw = phoneController.text.trim();
               if (raw.isEmpty) return;
-              final formatted = _normalizePhone(raw);
+              final formatted = normalizePhone(raw);
               setModalState(() {
                 isSending = true;
               });
@@ -234,9 +235,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   phoneNumber: formatted,
                   verificationCompleted: (_) {},
                   verificationFailed: (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(e.message ?? 'Verification failed')),
-                    );
+                _showSnack(e.message ?? 'Verification failed');
                   },
                   codeSent: (id, _) {
                     setModalState(() {
@@ -249,9 +248,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   },
                 );
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to send code: $e')),
-                );
+                _showSnack('Failed to send code: $e');
               } finally {
                 setModalState(() {
                   isSending = false;
@@ -263,7 +260,7 @@ class _ProfilePageState extends State<ProfilePage> {
               if (verificationId == null || codeController.text.length < 6) {
                 return;
               }
-              final formatted = _normalizePhone(phoneController.text.trim());
+              final formatted = normalizePhone(phoneController.text.trim());
               setModalState(() => isSending = true);
               try {
                 final credential = PhoneAuthProvider.credential(
@@ -275,12 +272,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   user,
                   data: {'phoneNumber': formatted},
                 );
-                if (!mounted) return;
-                Navigator.of(ctx).pop();
+                if (!mounted || !context.mounted) return;
+                Navigator.of(context).pop();
               } on FirebaseAuthException catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(e.message ?? 'Invalid code')),
-                );
+                _showSnack(e.message ?? 'Invalid code');
               } finally {
                 setModalState(() => isSending = false);
               }
@@ -642,7 +637,7 @@ class _ProfileHeader extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withValues(alpha: 0.08),
                         blurRadius: 12,
                         offset: const Offset(0, 6),
                       ),
@@ -736,8 +731,8 @@ class _StatCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 10),
           ),
@@ -801,7 +796,7 @@ class _ContactInfoCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 16,
               offset: const Offset(0, 10),
             ),
@@ -930,7 +925,7 @@ class _QuickLinksCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 16,
               offset: const Offset(0, 10),
             ),

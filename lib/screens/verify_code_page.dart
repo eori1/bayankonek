@@ -256,7 +256,7 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.18),
+                                  color: Colors.black.withValues(alpha: 0.18),
                                   blurRadius: 20,
                                   offset: const Offset(0, 14),
                                 ),

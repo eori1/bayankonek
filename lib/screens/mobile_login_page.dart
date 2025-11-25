@@ -161,7 +161,7 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
                         borderRadius: BorderRadius.circular(36),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF0F1C3D).withOpacity(0.12),
+                            color: const Color(0xFF0F1C3D).withValues(alpha: 0.12),
                             blurRadius: 40,
                             offset: const Offset(0, 18),
                           ),
@@ -186,7 +186,7 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.18),
+                                    color: Colors.black.withValues(alpha: 0.18),
                                     blurRadius: 20,
                                     offset: const Offset(0, 14),
                                   ),
@@ -233,9 +233,8 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(
-                                    0xFF667699,
-                                  ).withOpacity(0.08),
+                                  color: const Color(0xFF667699)
+                                      .withValues(alpha: 0.08),
                                   blurRadius: 12,
                                   offset: const Offset(0, 6),
                                 ),
