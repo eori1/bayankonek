@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../utils/nav_helpers.dart';
 import '../widgets/app_bottom_nav.dart';
 import 'services_page.dart';
 
@@ -8,13 +9,13 @@ class CommunityPage extends StatelessWidget {
 
   void _handleNavTap(BuildContext context, int index) {
     if (index == 2) return;
-    if (index == 0 && Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
+    if (index == 0) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
       return;
     }
     if (index == 1) {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const ServicesPage()),
+        slideFromRight(const ServicesPage()),
       );
       return;
     }

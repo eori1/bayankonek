@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/nav_helpers.dart';
 import '../widgets/app_bottom_nav.dart';
 import 'community_page.dart';
 import 'report_details_page.dart';
@@ -21,11 +22,11 @@ class HomePage extends StatelessWidget {
       if (index == 1) {
         Navigator.of(
           context,
-        ).push(MaterialPageRoute(builder: (_) => const ServicesPage()));
+        ).push(slideFromRight(const ServicesPage()));
       } else if (index == 2) {
         Navigator.of(
           context,
-        ).push(MaterialPageRoute(builder: (_) => const CommunityPage()));
+        ).push(slideFromRight(const CommunityPage()));
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -88,7 +89,7 @@ class _HeroHeader extends StatelessWidget {
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1A60C8).withOpacity(0.35),
+            color: const Color(0xFF1A60C8).withValues(alpha: 0.35),
             blurRadius: 25,
             offset: const Offset(0, 15),
           ),
@@ -107,7 +108,7 @@ class _HeroHeader extends StatelessWidget {
                     Text(
                       'Good afternoon!',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -124,9 +125,9 @@ class _HeroHeader extends StatelessWidget {
               ),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                 ),
                 child: IconButton(
                   icon: const Icon(Icons.person_outline, color: Colors.white),
@@ -141,13 +142,13 @@ class _HeroHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.16),
+              color: Colors.white.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
             child: Row(
               children: [
-                Icon(Icons.phone_android, color: Colors.white.withOpacity(0.9)),
+                Icon(Icons.phone_android, color: Colors.white.withValues(alpha: 0.9)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -178,9 +179,9 @@ class _StatCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
+        color: Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withOpacity(0.25)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,7 +189,7 @@ class _StatCard extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
           const SizedBox(height: 8),
@@ -217,7 +218,7 @@ class _NotificationsSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 18,
             offset: const Offset(0, 12),
           ),
@@ -306,7 +307,7 @@ class _NotificationItem extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: tagColor.withOpacity(0.12),
+              color: tagColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -380,9 +381,9 @@ class _ServiceCard extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: const Color(0xFFE0E6F2)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 16,
               offset: const Offset(0, 8),
             ),
@@ -685,7 +686,7 @@ class _EmptyActivityCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -848,7 +849,7 @@ class _ActivityItem extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 18,
               offset: const Offset(0, 10),
             ),
@@ -908,7 +909,7 @@ class _ActivityItem extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.15),
+            color: statusColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Text(

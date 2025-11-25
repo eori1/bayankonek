@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../utils/nav_helpers.dart';
 import '../widgets/app_bottom_nav.dart';
+import 'community_page.dart';
 import 'report_issue_page.dart';
 import 'request_document_page.dart';
 
@@ -50,11 +52,9 @@ class ServicesPage extends StatelessWidget {
               icon: Icons.description_outlined,
               label: 'Request Document',
               onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const RequestDocumentPage(),
-                  ),
-                );
+            Navigator.of(context).push(
+              slideFromRight(const RequestDocumentPage()),
+            );
               },
             ),
             const SizedBox(height: 16),
@@ -62,11 +62,9 @@ class ServicesPage extends StatelessWidget {
               icon: Icons.warning_amber_outlined,
               label: 'Report Issue',
               onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const ReportIssuePage(),
-                  ),
-                );
+            Navigator.of(context).push(
+              slideFromRight(const ReportIssuePage()),
+            );
               },
             ),
           ],
@@ -75,8 +73,18 @@ class ServicesPage extends StatelessWidget {
       bottomNavigationBar: AppBottomNav(
         currentIndex: 1,
         onItemSelected: (index) {
+          if (index == 1) return;
           if (index == 0) {
-            Navigator.of(context).pop();
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          } else if (index == 2) {
+            Navigator.of(context).push(slideFromRight(const CommunityPage()));
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('This tab is coming soon.'),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
           }
         },
       ),
@@ -109,7 +117,7 @@ class _ServiceActionButton extends StatelessWidget {
           border: Border.all(color: const Color(0xFFB6E0FF)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 18,
               offset: const Offset(0, 10),
             ),
