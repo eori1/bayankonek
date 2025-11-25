@@ -88,6 +88,13 @@ class ReportDetailsPage extends StatelessWidget {
     }
   }
 
+  DateTime? _dateFromField(String field) {
+    final raw = data[field];
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is DateTime) return raw;
+    return null;
+  }
+
   List<_ReportTimelineEvent> _timeline() {
     final steps = [
       'submitted',
@@ -110,10 +117,17 @@ class ReportDetailsPage extends StatelessWidget {
       'Repair work in progress',
       'Repair completed',
     ];
-    final dates = List.generate(
+    final fallbackDates = List.generate(
       steps.length,
       (index) => _createdAt.add(Duration(hours: 6 * index)),
     );
+    final statusFields = <String, String>{
+      'submitted': 'createdAt',
+      'under_review': 'underReviewAt',
+      'approved': 'approvedAt',
+      'in_progress': 'inProgressAt',
+      'completed': 'completedAt',
+    };
 
     final currentIndex =
         steps.indexWhere((step) => step == _status).clamp(0, steps.length - 1);
@@ -127,7 +141,8 @@ class ReportDetailsPage extends StatelessWidget {
       return _ReportTimelineEvent(
         title: labels[index],
         description: descriptions[index],
-        date: dates[index],
+        date: _dateFromField(statusFields[steps[index]] ?? '') ??
+            fallbackDates[index],
         status: status,
       );
     });

@@ -63,7 +63,10 @@ class DocumentsHistoryPage extends StatelessWidget {
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => RequestDetailsPage(data: data),
+                          builder: (_) => RequestDetailsPage(
+                            requestId: data['requestId']?.toString() ?? docs[index].id,
+                            initialData: data,
+                          ),
                         ),
                       );
                     },

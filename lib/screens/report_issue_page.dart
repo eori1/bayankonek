@@ -129,7 +129,7 @@ class _ReportIssuePageState extends State<ReportIssuePage> {
         'location': _locationController.text.trim(),
         'description': _descriptionController.text.trim(),
         'contact': _contactController.text.trim(),
-        'status': 'in_progress',
+        'status': 'submitted',
         'createdAt': FieldValue.serverTimestamp(),
         if (userId != null) 'userId': userId,
     if (_selectedLatLng != null)

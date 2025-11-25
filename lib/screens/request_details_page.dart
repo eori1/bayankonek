@@ -3,7 +3,48 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class RequestDetailsPage extends StatelessWidget {
-  const RequestDetailsPage({super.key, required this.data});
+  const RequestDetailsPage({
+    super.key,
+    required this.requestId,
+    this.initialData,
+  });
+
+  final String requestId;
+  final Map<String, dynamic>? initialData;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('Requests')
+          .doc(requestId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            initialData == null) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final data = snapshot.data?.data() ?? initialData;
+        if (data == null) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Request Details'),
+            ),
+            body: const Center(
+              child: Text('This request could not be found.'),
+            ),
+          );
+        }
+        return _RequestDetailsContent(data: data);
+      },
+    );
+  }
+}
+
+class _RequestDetailsContent extends StatelessWidget {
+  const _RequestDetailsContent({required this.data});
 
   final Map<String, dynamic> data;
 
@@ -66,7 +107,13 @@ class RequestDetailsPage extends StatelessWidget {
     switch (_status) {
       case 'payment_pending':
         return const Color(0xFFEE3E4F);
+      case 'reviewed':
+      case 'under_review':
+        return const Color(0xFF4C8DFF);
+      case 'approved':
+        return const Color(0xFF2AC769);
       case 'ready':
+      case 'completed':
         return const Color(0xFF2AC769);
       case 'processing':
         return const Color(0xFFE0A218);
@@ -75,16 +122,14 @@ class RequestDetailsPage extends StatelessWidget {
     }
   }
 
-  List<_TimelineEvent> _timelineEvents() {
-    final anchors = <DateTime>[
-      _submittedAt,
-      _submittedAt.add(const Duration(hours: 3)),
-      _submittedAt.add(const Duration(hours: 8)),
-      _submittedAt.add(const Duration(days: 1)),
-      _submittedAt.add(const Duration(days: 2)),
-      _submittedAt.add(const Duration(days: 3)),
-    ];
+  DateTime? _dateFromField(String field) {
+    final raw = data[field];
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is DateTime) return raw;
+    return null;
+  }
 
+  List<_TimelineEvent> _timelineEvents() {
     final steps = <String>[
       'payment_pending',
       'submitted',
@@ -92,6 +137,7 @@ class RequestDetailsPage extends StatelessWidget {
       'approved',
       'processing',
       'ready',
+      'completed',
     ];
     final idx = steps.indexWhere((step) => step == _status);
     final currentIndex = idx < 0 ? 0 : idx.clamp(0, steps.length - 1);
@@ -103,7 +149,28 @@ class RequestDetailsPage extends StatelessWidget {
       'Approved by barangay captain',
       'Document is being prepared',
       'Ready for pickup',
+      'Document picked up',
     ];
+
+    final fallbackAnchors = <DateTime>[
+      _submittedAt,
+      _submittedAt.add(const Duration(hours: 3)),
+      _submittedAt.add(const Duration(hours: 8)),
+      _submittedAt.add(const Duration(days: 1)),
+      _submittedAt.add(const Duration(days: 2)),
+      _submittedAt.add(const Duration(days: 3)),
+      _submittedAt.add(const Duration(days: 4)),
+    ];
+
+    final statusFields = <String, String>{
+      'payment_pending': 'paymentPendingAt',
+      'submitted': 'submittedAt',
+      'reviewed': 'reviewedAt',
+      'approved': 'approvedAt',
+      'processing': 'processingAt',
+      'ready': 'readyAt',
+      'completed': 'completedAt',
+    };
 
     return List.generate(steps.length, (index) {
       final normalizedStatus = index < currentIndex
@@ -111,10 +178,14 @@ class RequestDetailsPage extends StatelessWidget {
           : index == currentIndex
               ? _TimelineStatus.active
               : _TimelineStatus.pending;
+      final field = statusFields[steps[index]];
+      final date = field != null
+          ? _dateFromField(field) ?? fallbackAnchors[index]
+          : fallbackAnchors[index];
       return _TimelineEvent(
         title: steps[index][0].toUpperCase() + steps[index].substring(1),
         description: descriptions[index],
-        date: anchors[index],
+        date: date,
         status: normalizedStatus,
       );
     });

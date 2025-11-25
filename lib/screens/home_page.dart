@@ -636,7 +636,10 @@ class _RecentActivitySection extends StatelessWidget {
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
                                       builder: (_) => RequestDetailsPage(
-                                        data: record.data,
+                                        requestId:
+                                            record.data['requestId']?.toString() ??
+                                                '',
+                                        initialData: record.data,
                                       ),
                                     ),
                                   );

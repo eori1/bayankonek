@@ -261,7 +261,10 @@ class _ActivityHistoryTile extends StatelessWidget {
           case ActivityType.request:
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => RequestDetailsPage(data: record.data),
+                builder: (_) => RequestDetailsPage(
+                  requestId: record.data['requestId']?.toString() ?? '',
+                  initialData: record.data,
+                ),
               ),
             );
             break;

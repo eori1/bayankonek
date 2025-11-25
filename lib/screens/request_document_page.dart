@@ -77,6 +77,7 @@ class _RequestDocumentPageState extends State<RequestDocumentPage> {
       'amountDue': requiresPayment ? feeAmount : 0,
       'paymentAmount': feeAmount,
       'paymentStatus': requiresPayment ? 'pending' : 'paid',
+      if (requiresPayment) 'paymentPendingAt': FieldValue.serverTimestamp(),
       if (requiresPayment)
         'paymentDueDate':
             Timestamp.fromDate(DateTime.now().add(const Duration(days: 5))),
@@ -616,7 +617,9 @@ class _RecentRequests extends StatelessWidget {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => RequestDetailsPage(
-                            data: detailPayload,
+                            requestId:
+                                data['requestId']?.toString() ?? doc.id,
+                            initialData: detailPayload,
                           ),
                         ),
                       );
