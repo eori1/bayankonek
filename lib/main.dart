@@ -101,7 +101,7 @@ class _LandingPageState extends State<LandingPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _LogoPlaceholder(),
+                Image.asset('assets/logo.png', width: 140, height: 140),
                 const SizedBox(height: 32),
                 Text(
                   'BayanKonek',
@@ -164,34 +164,6 @@ class _LandingPageState extends State<LandingPage> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _LogoPlaceholder extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 140,
-      height: 140,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1B79D9), Color(0xFF1E59C5)],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.15),
-            blurRadius: 24,
-            offset: const Offset(0, 16),
-          ),
-        ],
-      ),
-      child: const Center(
-        child: Icon(Icons.home_outlined, color: Colors.white, size: 56),
       ),
     );
   }
