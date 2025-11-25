@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import 'payment_receipt_page.dart';
+
 class PaymentsPage extends StatefulWidget {
   const PaymentsPage({super.key, this.embedded = false});
 
@@ -13,30 +15,48 @@ class PaymentsPage extends StatefulWidget {
 }
 
 class _PaymentsPageState extends State<PaymentsPage> {
+  static const _feeDocumentTypes = [
+    'Residency Certificate',
+    'Barangay Clearance',
+    'Business Permit',
+  ];
   final _firestore = FirebaseFirestore.instance;
   String? _processingRequestId;
+
+  String _generateReferenceNumber() {
+    final now = DateTime.now();
+    final unique = now.millisecondsSinceEpoch.toString().substring(6);
+    return 'GC-${now.year}-$unique';
+  }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> _pendingFees(String userId) {
     return _firestore
         .collection('Requests')
         .where('userId', isEqualTo: userId)
-        .where('documentType', isEqualTo: 'Residency Certificate')
+        .where('documentType', whereIn: _feeDocumentTypes)
         .where('status', isEqualTo: 'payment_pending')
         .snapshots();
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> _recentPayments(String userId) {
     return _firestore
-        .collection('Requests')
+        .collection('Payments')
         .where('userId', isEqualTo: userId)
-        .where('documentType', isEqualTo: 'Residency Certificate')
-        .where('paymentStatus', isEqualTo: 'paid')
         .orderBy('paidAt', descending: true)
         .limit(5)
         .snapshots();
   }
 
-  Future<void> _payRequest(DocumentSnapshot<Map<String, dynamic>> doc) async {
+  Future<DocumentSnapshot<Map<String, dynamic>>?> _payRequest(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) async {
+    final docData = doc.data() ?? {};
+    final amount =
+        (docData['paymentAmount'] as num?)?.toDouble() ??
+        (docData['amountDue'] as num?)?.toDouble() ??
+        0;
+    final userId = docData['userId']?.toString();
+    final payerName = docData['fullName']?.toString() ?? 'Citizen';
     setState(() => _processingRequestId = doc.id);
     try {
       await doc.reference.update({
@@ -46,7 +66,24 @@ class _PaymentsPageState extends State<PaymentsPage> {
         'status': 'processing',
       });
 
-      if (!mounted) return;
+      final paymentPayload = {
+        'requestId': doc.id,
+        'userId': userId,
+        'referenceNumber': _generateReferenceNumber(),
+        'documentType': docData['documentType'],
+        'purpose': docData['purpose'],
+        'paymentAmount': amount,
+        'paidAt': FieldValue.serverTimestamp(),
+        'paymentMethod': 'GCash',
+        'status': 'confirmed',
+        'payerName': payerName,
+        'payerContact': FirebaseAuth.instance.currentUser?.phoneNumber ??
+            docData['contactNumber'],
+      };
+      final paymentRef =
+          await _firestore.collection('Payments').add(paymentPayload);
+
+      if (!mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Payment received for ${doc.id}. Preparing document...'),
@@ -55,14 +92,47 @@ class _PaymentsPageState extends State<PaymentsPage> {
 
       await Future.delayed(const Duration(seconds: 2));
       await doc.reference.update({'status': 'ready'});
+      return await paymentRef.get();
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted) return null;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Payment failed: $e')),
       );
+      return null;
     } finally {
       if (mounted) {
         setState(() => _processingRequestId = null);
+      }
+    }
+  }
+
+  Future<void> _startPaymentFlow(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) async {
+    final data = doc.data() ?? {};
+    final amount = (data['amountDue'] as num?)?.toDouble() ??
+        (data['paymentAmount'] as num?)?.toDouble() ??
+        0;
+    final documentType = data['documentType']?.toString() ?? 'Document Fee';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _GcashDialog(
+        documentType: documentType,
+        amount: amount,
+      ),
+    );
+
+    if (confirmed == true) {
+      final paymentDoc = await _payRequest(doc);
+      if (!mounted) return;
+      if (paymentDoc != null && paymentDoc.data() != null) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => PaymentReceiptPage(paymentData: paymentDoc.data()!),
+          ),
+        );
       }
     }
   }
@@ -138,7 +208,7 @@ class _PaymentsPageState extends State<PaymentsPage> {
                                 child: _FeeCard(
                                   doc: doc,
                                   isProcessing: _processingRequestId == doc.id,
-                                  onPay: () => _payRequest(doc),
+                                  onPay: () => _startPaymentFlow(doc),
                                 ),
                               ),
                             )
@@ -521,6 +591,137 @@ class _FeeCard extends StatelessWidget {
   }
 }
 
+class _GcashDialog extends StatelessWidget {
+  const _GcashDialog({required this.documentType, required this.amount});
+
+  final String documentType;
+  final double amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final amountLabel = '₱${amount.toStringAsFixed(2)}';
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6EEFF),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.smartphone, color: Color(0xFF1063FF), size: 32),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Pay with GCash',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+                color: Color(0xFF1F1F1F),
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Secure payment processing',
+              style: TextStyle(color: Color(0xFF7A8193)),
+            ),
+            const SizedBox(height: 24),
+            _PaymentDetailTile(label: 'Payment for', value: documentType),
+            const SizedBox(height: 12),
+            _PaymentDetailTile(label: 'Amount', value: amountLabel),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1F75FF),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                child: const Text(
+                  'Confirm Payment',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color: Color(0xFF5A5F6F),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentDetailTile extends StatelessWidget {
+  const _PaymentDetailTile({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F6FB),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label:',
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF8A92A6),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1F1F1F),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _RecentPaymentCard extends StatelessWidget {
   const _RecentPaymentCard({required this.doc});
 
@@ -529,7 +730,7 @@ class _RecentPaymentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final data = doc.data() ?? {};
-    final amount = (data['paymentAmount'] ?? data['amountDue']) as num? ?? 0;
+    final amount = (data['paymentAmount'] as num?)?.toDouble() ?? 0;
     final paidTs = data['paidAt'];
     final paidDate = paidTs is Timestamp ? paidTs.toDate() : null;
     final paidLabel =
@@ -565,14 +766,14 @@ class _RecentPaymentCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  data['documentType'] ?? 'Residency Certificate',
+                  data['documentType']?.toString() ?? 'Document Fee',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  data['purpose'] ?? 'Barangay residency request',
+                  data['purpose']?.toString() ?? 'Barangay service payment',
                   style: const TextStyle(
                     color: Color(0xFF6B6F7F),
                     fontSize: 13,

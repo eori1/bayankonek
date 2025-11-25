@@ -21,6 +21,11 @@ class _RequestDocumentPageState extends State<RequestDocumentPage> {
     'Business Permit',
     'Residency Certificate',
   ];
+  static const Map<String, double> _documentFees = {
+    'Residency Certificate': 50,
+    'Barangay Clearance': 100,
+    'Business Permit': 200,
+  };
   String? _selectedDoc;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool _isSubmitting = false;
@@ -59,19 +64,20 @@ class _RequestDocumentPageState extends State<RequestDocumentPage> {
     final requestId = _generateRequestId();
     final userId = FirebaseAuth.instance.currentUser?.uid;
 
-    final isResidency = _selectedDoc == 'Residency Certificate';
+    final feeAmount = _documentFees[_selectedDoc] ?? 0;
+    final requiresPayment = feeAmount > 0;
     final baseData = {
       'requestId': requestId,
       'fullName': name,
       'documentType': _selectedDoc,
       'purpose': purpose,
-      'status': isResidency ? 'payment_pending' : 'submitted',
+      'status': requiresPayment ? 'payment_pending' : 'submitted',
       'submittedAt': FieldValue.serverTimestamp(),
       if (userId != null) 'userId': userId,
-      'amountDue': isResidency ? 50 : 0,
-      'paymentAmount': isResidency ? 50 : 0,
-      'paymentStatus': isResidency ? 'pending' : 'paid',
-      if (isResidency)
+      'amountDue': requiresPayment ? feeAmount : 0,
+      'paymentAmount': feeAmount,
+      'paymentStatus': requiresPayment ? 'pending' : 'paid',
+      if (requiresPayment)
         'paymentDueDate':
             Timestamp.fromDate(DateTime.now().add(const Duration(days: 5))),
     };

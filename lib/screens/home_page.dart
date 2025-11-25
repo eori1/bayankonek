@@ -931,16 +931,23 @@ class _ActivityItem extends StatelessWidget {
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-            color: statusColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Text(
-                status,
-                style:
-                    TextStyle(fontWeight: FontWeight.w600, color: statusColor),
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    status,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: statusColor,
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
