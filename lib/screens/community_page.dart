@@ -4,6 +4,7 @@ import '../models/community_announcement.dart';
 import '../utils/nav_helpers.dart';
 import '../widgets/app_bottom_nav.dart';
 import 'announcement_details_page.dart';
+import 'payments_page.dart';
 import 'services_page.dart';
 
 class CommunityPage extends StatelessWidget {
@@ -20,6 +21,12 @@ class CommunityPage extends StatelessWidget {
     if (index == 1) {
       Navigator.of(context).push(
         slideFromRight(const ServicesPage()),
+      );
+      return;
+    }
+    if (index == 3) {
+      Navigator.of(context).push(
+        slideFromRight(const PaymentsPage()),
       );
       return;
     }

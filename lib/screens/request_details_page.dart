@@ -20,6 +20,34 @@ class RequestDetailsPage extends StatelessWidget {
       (data['fullName'] as String?) ?? 'Applicant Name';
 
   String get _status => (data['status'] as String?)?.toLowerCase() ?? 'submitted';
+  String get _paymentStatus =>
+      (data['paymentStatus'] as String?)?.toLowerCase() ?? 'paid';
+
+  double get _amountDue {
+    final raw = data['amountDue'];
+    if (raw is num) return raw.toDouble();
+    return 0;
+  }
+
+  double get _paymentAmount {
+    final raw = data['paymentAmount'];
+    if (raw is num) return raw.toDouble();
+    return _amountDue;
+  }
+
+  DateTime? get _paymentDueDate {
+    final raw = data['paymentDueDate'];
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is DateTime) return raw;
+    return null;
+  }
+
+  DateTime? get _paidAt {
+    final raw = data['paidAt'];
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is DateTime) return raw;
+    return null;
+  }
 
   DateTime get _submittedAt {
     final raw = data['submittedAt'];
@@ -36,6 +64,8 @@ class RequestDetailsPage extends StatelessWidget {
 
   Color _statusColor() {
     switch (_status) {
+      case 'payment_pending':
+        return const Color(0xFFEE3E4F);
       case 'ready':
         return const Color(0xFF2AC769);
       case 'processing':
@@ -48,23 +78,26 @@ class RequestDetailsPage extends StatelessWidget {
   List<_TimelineEvent> _timelineEvents() {
     final anchors = <DateTime>[
       _submittedAt,
-      _submittedAt.add(const Duration(hours: 5)),
+      _submittedAt.add(const Duration(hours: 3)),
+      _submittedAt.add(const Duration(hours: 8)),
       _submittedAt.add(const Duration(days: 1)),
-      _submittedAt.add(const Duration(days: 1, hours: 6)),
+      _submittedAt.add(const Duration(days: 2)),
       _submittedAt.add(const Duration(days: 3)),
     ];
 
     final steps = <String>[
+      'payment_pending',
       'submitted',
       'reviewed',
       'approved',
       'processing',
       'ready',
     ];
-    final currentIndex =
-        steps.indexWhere((step) => step == _status).clamp(0, steps.length - 1);
+    final idx = steps.indexWhere((step) => step == _status);
+    final currentIndex = idx < 0 ? 0 : idx.clamp(0, steps.length - 1);
 
     final descriptions = [
+      'Awaiting payment confirmation',
       'Your request has been submitted',
       'Documents reviewed by staff',
       'Approved by barangay captain',
@@ -158,7 +191,11 @@ class RequestDetailsPage extends StatelessWidget {
               const SizedBox(height: 18),
               _SectionCard(
                 child: _PaymentCard(
-                  amountText: '₱50.00 - Paid on ${_formatShortDate(_submittedAt)}',
+                  amountDue: _amountDue,
+                  paymentStatus: _paymentStatus,
+                  dueDate: _paymentDueDate,
+                  paymentAmount: _paymentAmount,
+                  paidAt: _paidAt,
                 ),
               ),
               const SizedBox(height: 18),
@@ -253,7 +290,7 @@ class _RequestHeaderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 18,
             offset: const Offset(0, 12),
           ),
@@ -268,7 +305,7 @@ class _RequestHeaderCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.15),
+                  color: statusColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -365,7 +402,7 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 20,
             offset: const Offset(0, 12),
           ),
@@ -477,7 +514,7 @@ class _TimelineRow extends StatelessWidget {
     final Color borderColor =
         isPending ? const Color(0xFFE0E6F0) : _color;
     final Color fillColor =
-        isPending ? Colors.white : _color.withOpacity(0.15);
+        isPending ? Colors.white : _color.withValues(alpha: 0.15);
 
     return Container(
       width: size,
@@ -489,7 +526,7 @@ class _TimelineRow extends StatelessWidget {
         boxShadow: [
           if (!isPending)
             BoxShadow(
-              color: _color.withOpacity(0.25),
+              color: _color.withValues(alpha: 0.25),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -519,7 +556,7 @@ class _TimelineRow extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: event.status == _TimelineStatus.pending
                       ? const Color(0xFFE7EBF3)
-                      : _color.withOpacity(0.35),
+                      : _color.withValues(alpha: 0.35),
                 ),
               ),
           ],
@@ -558,16 +595,34 @@ class _TimelineRow extends StatelessWidget {
 }
 
 class _PaymentCard extends StatelessWidget {
-  const _PaymentCard({required this.amountText});
+  const _PaymentCard({
+    required this.amountDue,
+    required this.paymentStatus,
+    this.dueDate,
+    this.paidAt,
+    required this.paymentAmount,
+  });
 
-  final String amountText;
+  final double amountDue;
+  final String paymentStatus;
+  final double paymentAmount;
+  final DateTime? dueDate;
+  final DateTime? paidAt;
+
+  bool get _isPaid => paymentStatus == 'paid';
 
   @override
   Widget build(BuildContext context) {
+    final themeColor = _isPaid ? const Color(0xFF1F9D5C) : const Color(0xFFEE3E4F);
+    final title = _isPaid ? 'Payment Completed' : 'Payment Pending';
+    final subtitle = _isPaid
+        ? '₱${paymentAmount.toStringAsFixed(2)} • Paid on ${DateFormat('MM/dd/yy').format(paidAt ?? DateTime.now())}'
+        : '₱${amountDue.toStringAsFixed(2)} • Due on ${dueDate != null ? DateFormat('MM/dd/yy').format(dueDate!) : '—'}';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE7F7EE),
+        color: _isPaid ? const Color(0xFFE7F7EE) : const Color(0xFFFFF2F0),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -578,9 +633,9 @@ class _PaymentCard extends StatelessWidget {
               color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.check_circle,
-              color: Color(0xFF1F9D5C),
+            child: Icon(
+              _isPaid ? Icons.check_circle : Icons.schedule_outlined,
+              color: themeColor,
             ),
           ),
           const SizedBox(width: 12),
@@ -588,16 +643,16 @@ class _PaymentCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Payment Completed',
+                Text(
+                  title,
                   style: TextStyle(
-                    color: Color(0xFF1F9D5C),
+                    color: themeColor,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  amountText,
+                  subtitle,
                   style: const TextStyle(color: Color(0xFF3A4A5A)),
                 ),
               ],

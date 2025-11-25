@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../widgets/app_bottom_nav.dart';
 import 'community_page.dart';
+import 'payments_page.dart';
 import 'report_details_page.dart';
 import 'request_details_page.dart';
 import 'services_page.dart';
@@ -73,7 +74,7 @@ class _HomePageState extends State<HomePage> {
           ),
           const ServicesPage(embedded: true),
           const CommunityPage(embedded: true),
-          const _ComingSoonTab(label: 'Payments'),
+          const PaymentsPage(embedded: true),
           const _ComingSoonTab(label: 'Profile'),
         ],
       ),
@@ -477,6 +478,8 @@ class _RecentActivitySection extends StatelessWidget {
       case 'processing':
       case 'submitted':
         return const Color(0xFFF1C850);
+      case 'payment_pending':
+        return const Color(0xFFEE3E4F);
       default:
         return const Color(0xFF7A8193);
     }
@@ -506,6 +509,8 @@ class _RecentActivitySection extends StatelessWidget {
         return 'Ready for Pickup';
       case 'processing':
         return 'Processing';
+      case 'payment_pending':
+        return 'Pending Payment';
       default:
         return 'Submitted';
     }

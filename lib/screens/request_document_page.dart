@@ -59,15 +59,26 @@ class _RequestDocumentPageState extends State<RequestDocumentPage> {
     final requestId = _generateRequestId();
     final userId = FirebaseAuth.instance.currentUser?.uid;
 
+    final isResidency = _selectedDoc == 'Residency Certificate';
+    final baseData = {
+      'requestId': requestId,
+      'fullName': name,
+      'documentType': _selectedDoc,
+      'purpose': purpose,
+      'status': isResidency ? 'payment_pending' : 'submitted',
+      'submittedAt': FieldValue.serverTimestamp(),
+      if (userId != null) 'userId': userId,
+      'amountDue': isResidency ? 50 : 0,
+      'paymentAmount': isResidency ? 50 : 0,
+      'paymentStatus': isResidency ? 'pending' : 'paid',
+      if (isResidency)
+        'paymentDueDate':
+            Timestamp.fromDate(DateTime.now().add(const Duration(days: 5))),
+    };
+
     try {
       await _firestore.collection('Requests').doc(requestId).set({
-        'requestId': requestId,
-        'fullName': name,
-        'documentType': _selectedDoc,
-        'purpose': purpose,
-        'status': 'submitted',
-        'submittedAt': FieldValue.serverTimestamp(),
-        if (userId != null) 'userId': userId,
+        ...baseData,
       });
 
       if (!mounted) return;
@@ -209,7 +220,7 @@ class _ProgressCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 18,
             offset: const Offset(0, 10),
           ),
@@ -268,7 +279,7 @@ class _ProgressStep extends StatelessWidget {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: active ? color.withOpacity(0.12) : const Color(0xFFF3F5F9),
+            color: active ? color.withValues(alpha: 0.12) : const Color(0xFFF3F5F9),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: color),
           ),
@@ -328,7 +339,7 @@ class _FormSection extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 18,
             offset: const Offset(0, 12),
           ),
@@ -533,7 +544,7 @@ class _RecentRequests extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 18,
             offset: const Offset(0, 12),
           ),
@@ -674,7 +685,7 @@ class _RecentRequestTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.12),
+                color: statusColor.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Text(

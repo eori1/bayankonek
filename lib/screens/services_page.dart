@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../utils/nav_helpers.dart';
 import '../widgets/app_bottom_nav.dart';
 import 'community_page.dart';
+import 'payments_page.dart';
 import 'report_issue_page.dart';
 import 'request_document_page.dart';
 
@@ -110,6 +111,8 @@ class ServicesPage extends StatelessWidget {
             Navigator.of(context).popUntil((route) => route.isFirst);
           } else if (index == 2) {
             Navigator.of(context).push(slideFromRight(const CommunityPage()));
+          } else if (index == 3) {
+            Navigator.of(context).push(slideFromRight(const PaymentsPage()));
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
