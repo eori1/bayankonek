@@ -7,10 +7,82 @@ import 'report_issue_page.dart';
 import 'request_document_page.dart';
 
 class ServicesPage extends StatelessWidget {
-  const ServicesPage({super.key});
+  const ServicesPage({super.key, this.embedded = false});
+
+  final bool embedded;
+
+  Widget _buildContent(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          embedded ? 'How can we help you today?' : 'What would you like to do?',
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1F1F1F),
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Choose a service to continue',
+          style: TextStyle(fontSize: 15, color: Color(0xFF7A8193)),
+        ),
+        const SizedBox(height: 24),
+        _ServiceActionButton(
+          icon: Icons.description_outlined,
+          label: 'Request Document',
+          onTap: () {
+            Navigator.of(context).push(
+              slideFromRight(const RequestDocumentPage()),
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        _ServiceActionButton(
+          icon: Icons.warning_amber_outlined,
+          label: 'Report Issue',
+          onTap: () {
+            Navigator.of(context).push(
+              slideFromRight(const ReportIssuePage()),
+            );
+          },
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final content = SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(24, embedded ? 0 : 8, 24, embedded ? 24 : 0),
+      child: _buildContent(context),
+    );
+
+    if (embedded) {
+      return ColoredBox(
+        color: const Color(0xFFF5F6FA),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+                child: Text(
+                  'Services',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1F1F1F),
+                      ),
+                ),
+              ),
+              Expanded(child: content),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
       appBar: AppBar(
@@ -29,47 +101,7 @@ class ServicesPage extends StatelessWidget {
           ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'What would you like to do?',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1F1F1F),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Choose a service to continue',
-              style: TextStyle(fontSize: 15, color: Color(0xFF7A8193)),
-            ),
-            const SizedBox(height: 24),
-            _ServiceActionButton(
-              icon: Icons.description_outlined,
-              label: 'Request Document',
-              onTap: () {
-            Navigator.of(context).push(
-              slideFromRight(const RequestDocumentPage()),
-            );
-              },
-            ),
-            const SizedBox(height: 16),
-            _ServiceActionButton(
-              icon: Icons.warning_amber_outlined,
-              label: 'Report Issue',
-              onTap: () {
-            Navigator.of(context).push(
-              slideFromRight(const ReportIssuePage()),
-            );
-              },
-            ),
-          ],
-        ),
-      ),
+      body: content,
       bottomNavigationBar: AppBottomNav(
         currentIndex: 1,
         onItemSelected: (index) {

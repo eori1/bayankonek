@@ -2,64 +2,84 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../utils/nav_helpers.dart';
 import '../widgets/app_bottom_nav.dart';
 import 'community_page.dart';
 import 'report_details_page.dart';
 import 'request_details_page.dart';
 import 'services_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late final PageController _pageController;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onNavTap(int index) {
+    if (_currentIndex == index) return;
+    setState(() => _currentIndex = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final userId = user?.uid;
 
-    void handleNavTap(int index) {
-      if (index == 0) return;
-      if (index == 1) {
-        Navigator.of(
-          context,
-        ).push(slideFromRight(const ServicesPage()));
-      } else if (index == 2) {
-        Navigator.of(
-          context,
-        ).push(slideFromRight(const CommunityPage()));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('This tab is coming soon.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4FA),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _HeroHeader(user: user),
-              const SizedBox(height: 24),
-              const _NotificationsSection(),
-              const SizedBox(height: 24),
-              const _QuickServicesSection(),
-              const SizedBox(height: 24),
-              _RecentActivitySection(userId: userId),
-              const SizedBox(height: 32),
-            ],
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        onPageChanged: (index) => setState(() => _currentIndex = index),
+        children: [
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _HeroHeader(user: user),
+                  const SizedBox(height: 24),
+                  const _NotificationsSection(),
+                  const SizedBox(height: 24),
+                  const _QuickServicesSection(),
+                  const SizedBox(height: 24),
+                  _RecentActivitySection(userId: userId),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
           ),
-        ),
+          const ServicesPage(embedded: true),
+          const CommunityPage(embedded: true),
+          const _ComingSoonTab(label: 'Payments'),
+          const _ComingSoonTab(label: 'Profile'),
+        ],
       ),
       bottomNavigationBar: AppBottomNav(
-        currentIndex: 0,
-        onItemSelected: handleNavTap,
+        currentIndex: _currentIndex,
+        onItemSelected: _onNavTap,
       ),
     );
   }
@@ -919,6 +939,39 @@ class _ActivityItem extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ComingSoonTab extends StatelessWidget {
+  const _ComingSoonTab({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: const Color(0xFFF2F4FA),
+      child: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.construction_outlined,
+                  size: 48, color: Colors.grey.shade500),
+              const SizedBox(height: 12),
+              Text(
+                '$label tab is coming soon.',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: const Color(0xFF6B6F7F),
+                      fontWeight: FontWeight.w600,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );

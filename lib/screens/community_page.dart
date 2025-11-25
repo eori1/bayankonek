@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../models/community_announcement.dart';
 import '../utils/nav_helpers.dart';
 import '../widgets/app_bottom_nav.dart';
+import 'announcement_details_page.dart';
 import 'services_page.dart';
 
 class CommunityPage extends StatelessWidget {
-  const CommunityPage({super.key});
+  const CommunityPage({super.key, this.embedded = false});
+
+  final bool embedded;
 
   void _handleNavTap(BuildContext context, int index) {
     if (index == 2) return;
@@ -27,51 +31,65 @@ class CommunityPage extends StatelessWidget {
     );
   }
 
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: Row(
+        children: [
+          if (!embedded)
+            IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+              onPressed: () => Navigator.of(context).maybePop(),
+            ),
+          if (!embedded) const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Community',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+          if (!embedded)
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.more_horiz),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final scrollable = SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      child: Column(
+        children: const [
+          _HighlightCard(),
+          SizedBox(height: 24),
+          _CommunityEventList(),
+        ],
+      ),
+    );
+
+    final content = Column(
+      children: [
+        _buildHeader(context),
+        Expanded(child: scrollable),
+      ],
+    );
+
+    if (embedded) {
+      return ColoredBox(
+        color: const Color(0xFFF2F4FA),
+        child: SafeArea(child: content),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF2F4FA),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                    onPressed: () => Navigator.of(context).maybePop(),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Community',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.more_horiz),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                child: Column(
-                  children: const [
-                    _HighlightCard(),
-                    SizedBox(height: 24),
-                    _CommunityEventList(),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      body: SafeArea(child: content),
       bottomNavigationBar: AppBottomNav(
         currentIndex: 2,
         onItemSelected: (index) => _handleNavTap(context, index),
@@ -169,7 +187,7 @@ class _CommunityEventList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: _communityEvents
+      children: communityAnnouncements
           .map(
             (event) => Padding(
               padding: const EdgeInsets.only(bottom: 18),
@@ -184,7 +202,7 @@ class _CommunityEventList extends StatelessWidget {
 class _CommunityEventCard extends StatelessWidget {
   const _CommunityEventCard({required this.event});
 
-  final _CommunityEvent event;
+  final CommunityAnnouncement event;
 
   @override
   Widget build(BuildContext context) {
@@ -289,7 +307,13 @@ class _CommunityEventCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.of(context).push(
+                  slideFromRight(
+                    AnnouncementDetailsPage(announcement: event),
+                  ),
+                );
+              },
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF6B6F7F),
                 side: const BorderSide(color: Color(0xFFE2E6F0)),
@@ -337,36 +361,8 @@ class _EventDetailRow extends StatelessWidget {
   }
 }
 
-class _CommunityEvent {
-  const _CommunityEvent({
-    required this.icon,
-    required this.iconBackground,
-    required this.iconColor,
-    required this.title,
-    required this.description,
-    required this.dateLabel,
-    required this.timeLabel,
-    required this.location,
-    required this.attendeesLabel,
-    required this.badge,
-    required this.badgeColor,
-  });
-
-  final IconData icon;
-  final Color iconBackground;
-  final Color iconColor;
-  final String title;
-  final String description;
-  final String dateLabel;
-  final String timeLabel;
-  final String location;
-  final String attendeesLabel;
-  final String badge;
-  final Color badgeColor;
-}
-
-const _communityEvents = [
-  _CommunityEvent(
+const communityAnnouncements = [
+  CommunityAnnouncement(
     icon: Icons.clean_hands_outlined,
     iconBackground: Color(0xFFEAF4FF),
     iconColor: Color(0xFF2E7CFB),
@@ -375,12 +371,18 @@ const _communityEvents = [
         'Join us for a barangay-wide clean-up activity this Saturday. Help keep our community clean and green!',
     dateLabel: 'Dec 28, 2024',
     timeLabel: '7:00 AM – 12:00 PM',
-    location: 'Barangay Hall',
+    location: 'Barangay Hall, Covered Court',
+    organizer: 'Barangay Council',
     attendeesLabel: '45 going',
     badge: 'Event',
     badgeColor: Color(0xFF1ABC9C),
+    reminderDetails:
+        'Please arrive early. The event will start promptly at 7:00 AM. Bring a valid ID for registration.',
+    contactPerson: 'Kap. Juan Cruz',
+    contactPhone: '+63 917 123 4567',
+    contactEmail: 'barangay@example.com',
   ),
-  _CommunityEvent(
+  CommunityAnnouncement(
     icon: Icons.favorite_outline,
     iconBackground: Color(0xFFFFEDEE),
     iconColor: Color(0xFFE74C3C),
@@ -390,11 +392,17 @@ const _communityEvents = [
     dateLabel: 'Jan 5, 2025',
     timeLabel: '8:00 AM – 5:00 PM',
     location: 'Health Center',
+    organizer: 'Barangay Health Unit',
     attendeesLabel: '120 going',
     badge: 'Health',
     badgeColor: Color(0xFFE74C3C),
+    reminderDetails:
+        'Wear a mask and face shield. Seniors and immunocompromised residents are prioritized from 8–10 AM.',
+    contactPerson: 'Nurse Lea Santos',
+    contactPhone: '+63 917 555 2234',
+    contactEmail: 'healthdesk@example.com',
   ),
-  _CommunityEvent(
+  CommunityAnnouncement(
     icon: Icons.celebration_outlined,
     iconBackground: Color(0xFFF4EEFF),
     iconColor: Color(0xFF9B59B6),
@@ -404,11 +412,17 @@ const _communityEvents = [
     dateLabel: 'Dec 31, 2024',
     timeLabel: '6:00 PM – 12:00 AM',
     location: 'Town Plaza',
+    organizer: 'Youth & Culture Committee',
     attendeesLabel: '200+ going',
     badge: 'Celebration',
     badgeColor: Color(0xFF9B59B6),
+    reminderDetails:
+        'Fireworks start at 11:45 PM. Bring your reusable tumblers; plastic bottles are discouraged.',
+    contactPerson: 'Councilor Mia Perez',
+    contactPhone: '+63 917 222 8899',
+    contactEmail: 'events@example.com',
   ),
-  _CommunityEvent(
+  CommunityAnnouncement(
     icon: Icons.warning_amber_outlined,
     iconBackground: Color(0xFFFFF5EA),
     iconColor: Color(0xFFF39C12),
@@ -418,9 +432,16 @@ const _communityEvents = [
     dateLabel: 'Jan 10, 2025',
     timeLabel: 'All day',
     location: 'Main Road',
+    organizer: 'Engineering Office',
     attendeesLabel: '—',
     badge: 'Advisory',
     badgeColor: Color(0xFFF39C12),
+    reminderTitle: 'Plan Ahead',
+    reminderDetails:
+        'Expect traffic delays near Main Road. Emergency vehicles have priority access.',
+    contactPerson: 'Engr. Paolo Ramirez',
+    contactPhone: '+63 917 444 8080',
+    contactEmail: 'engineering@example.com',
   ),
 ];
 
