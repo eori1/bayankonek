@@ -7,6 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/auth_service.dart';
+import 'documents_history_page.dart';
+import 'help_support_page.dart';
+import 'notifications_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key, this.embedded = false});
@@ -460,11 +463,41 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 16),
                 _QuickLinksCard(
-                  links: const [
-                    _QuickLink(icon: Icons.person_outline, label: 'Personal Information'),
-                    _QuickLink(icon: Icons.folder_open_outlined, label: 'My Documents'),
-                    _QuickLink(icon: Icons.notifications_outlined, label: 'Notifications'),
-                    _QuickLink(icon: Icons.help_outline, label: 'Help & Support'),
+                  links: [
+                    _QuickLink(
+                      icon: Icons.person_outline,
+                      label: 'Personal Information',
+                      onTap: () => _openEditProfileSheet(user, profile),
+                    ),
+                    _QuickLink(
+                      icon: Icons.folder_open_outlined,
+                      label: 'My Documents',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => DocumentsHistoryPage(userId: user.uid),
+                          ),
+                        );
+                      },
+                    ),
+                    _QuickLink(
+                      icon: Icons.notifications_outlined,
+                      label: 'Notifications',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const NotificationsPage()),
+                        );
+                      },
+                    ),
+                    _QuickLink(
+                      icon: Icons.help_outline,
+                      label: 'Help & Support',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const HelpSupportPage()),
+                        );
+                      },
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -937,13 +970,14 @@ class _QuickLinksCard extends StatelessWidget {
                 (link) => Column(
                   children: [
                     ListTile(
-                      leading: Icon(link.icon, color: const Color(0xFF1F75FF)),
+                      leading:
+                          Icon(link.icon, color: const Color(0xFF1F75FF)),
                       trailing: const Icon(Icons.chevron_right),
                       title: Text(
                         link.label,
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      onTap: () {},
+                      onTap: link.onTap,
                     ),
                     if (link != links.last)
                       const Divider(height: 0, indent: 16, endIndent: 16),
@@ -958,10 +992,15 @@ class _QuickLinksCard extends StatelessWidget {
 }
 
 class _QuickLink {
-  const _QuickLink({required this.icon, required this.label});
+  const _QuickLink({
+    required this.icon,
+    required this.label,
+    this.onTap,
+  });
 
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
 }
 
 class _ProfileTextField extends StatelessWidget {

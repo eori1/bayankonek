@@ -2,8 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../models/activity_record.dart';
+import '../utils/activity_mappers.dart';
+import '../utils/activity_utils.dart';
 import '../widgets/app_bottom_nav.dart';
+import 'all_activity_page.dart';
 import 'community_page.dart';
+import 'payment_receipt_page.dart';
 import 'payments_page.dart';
 import 'profile_page.dart';
 import 'report_details_page.dart';
@@ -233,6 +238,33 @@ class _NotificationsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final notifications = [
+      const _NotificationData(
+        title: 'Document ready for pickup',
+        body: 'Barangay Clearance',
+        tag: 'New',
+        color: Color(0xFF30C38C),
+        timeAgo: '2h ago',
+        icon: Icons.check_circle_outline,
+      ),
+      const _NotificationData(
+        title: 'Payment reminder',
+        body: 'Community Tax due tomorrow',
+        tag: 'Due Soon',
+        color: Color(0xFFF5A524),
+        timeAgo: '1d ago',
+        icon: Icons.payments_outlined,
+      ),
+      const _NotificationData(
+        title: 'Clean-up Drive',
+        body: 'Bring gloves and water bottle',
+        tag: 'Event',
+        color: Color(0xFF5E54FF),
+        timeAgo: '3d ago',
+        icon: Icons.campaign_outlined,
+      ),
+    ];
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -266,29 +298,18 @@ class _NotificationsSection extends StatelessWidget {
               Text(
                 'Notifications',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1F1F1F),
-                ),
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1F1F1F),
+                    ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          const _NotificationItem(
-            message: 'Your document is ready for pickup',
-            tag: 'New',
-            tagColor: Color(0xFFFF8B2E),
-          ),
-          const SizedBox(height: 12),
-          const _NotificationItem(
-            message: 'Payment deadline is tomorrow',
-            tag: 'Important',
-            tagColor: Color(0xFFEE3E4F),
-          ),
-          const SizedBox(height: 12),
-          const _NotificationItem(
-            message: 'Community Clean-Up Drive',
-            tag: 'Info',
-            tagColor: Color(0xFF1F85D5),
+          ...notifications.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _HomeNotificationTile(data: item),
+            ),
           ),
         ],
       ),
@@ -296,45 +317,88 @@ class _NotificationsSection extends StatelessWidget {
   }
 }
 
-class _NotificationItem extends StatelessWidget {
-  const _NotificationItem({
-    required this.message,
+class _NotificationData {
+  const _NotificationData({
+    required this.title,
+    required this.body,
     required this.tag,
-    required this.tagColor,
+    required this.color,
+    required this.timeAgo,
+    required this.icon,
   });
 
-  final String message;
+  final String title;
+  final String body;
   final String tag;
-  final Color tagColor;
+  final Color color;
+  final String timeAgo;
+  final IconData icon;
+}
+
+class _HomeNotificationTile extends StatelessWidget {
+  const _HomeNotificationTile({required this.data});
+
+  final _NotificationData data;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: const Color(0xFFF6F7FB),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: data.color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(data.icon, color: data.color),
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF1E1E1E),
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  data.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1E1E1E),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  data.body,
+                  style: const TextStyle(color: Color(0xFF6B6F7F)),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  data.timeAgo,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF9AA3B9),
+                  ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(width: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: tagColor.withValues(alpha: 0.12),
+              color: data.color.withOpacity(0.15),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              tag,
-              style: TextStyle(fontWeight: FontWeight.w600, color: tagColor),
+              data.tag,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: data.color,
+              ),
             ),
           ),
         ],
@@ -458,144 +522,19 @@ class _RecentActivitySection extends StatelessWidget {
     return collection.where('userId', isEqualTo: userId).snapshots();
   }
 
-  DateTime _requestDate(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-    final raw = doc.data()['submittedAt'];
-    if (raw is Timestamp) return raw.toDate();
-    return DateTime.fromMillisecondsSinceEpoch(0);
-  }
-
-  DateTime _issueDate(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-    final raw = doc.data()['createdAt'];
-    if (raw is Timestamp) return raw.toDate();
-    return DateTime.fromMillisecondsSinceEpoch(0);
-  }
-
-  Color _requestStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'completed':
-      case 'ready':
-      case 'ready for pickup':
-        return const Color(0xFF3DBE8B);
-      case 'processing':
-      case 'submitted':
-        return const Color(0xFFF1C850);
-      case 'payment_pending':
-        return const Color(0xFFEE3E4F);
-      default:
-        return const Color(0xFF7A8193);
+  Stream<QuerySnapshot<Map<String, dynamic>>> _paymentStream() {
+    final collection = FirebaseFirestore.instance.collection('Payments');
+    if (userId == null) {
+      return collection
+          .orderBy('paidAt', descending: true)
+          .limit(3)
+          .snapshots();
     }
-  }
-
-  Color _issueStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'resolved':
-      case 'completed':
-        return const Color(0xFF3DBE8B);
-      case 'in_progress':
-        return const Color(0xFFFFA63F);
-      case 'under_review':
-      case 'approved':
-        return const Color(0xFF4C8DFF);
-      default:
-        return const Color(0xFF7A8193);
-    }
-  }
-
-  String _requestStatusLabel(String status) {
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return 'Completed';
-      case 'ready':
-      case 'ready for pickup':
-        return 'Ready for Pickup';
-      case 'processing':
-        return 'Processing';
-      case 'payment_pending':
-        return 'Pending Payment';
-      default:
-        return 'Submitted';
-    }
-  }
-
-  String _issueStatusLabel(String status) {
-    switch (status.toLowerCase()) {
-      case 'resolved':
-      case 'completed':
-        return 'Completed';
-      case 'in_progress':
-        return 'In Progress';
-      case 'under_review':
-        return 'Under Review';
-      case 'approved':
-        return 'Approved';
-      default:
-        return 'Submitted';
-    }
-  }
-
-  List<_ActivityRecord> _requestRecords(
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-  ) {
-    return docs.map((doc) {
-      final data = doc.data();
-      final status = (data['status'] ?? 'submitted').toString();
-      final detailPayload = Map<String, dynamic>.from(data)
-        ..putIfAbsent('requestId', () => doc.id)
-        ..putIfAbsent('submittedAt', () => data['submittedAt']);
-      return _ActivityRecord(
-        type: _ActivityType.request,
-        data: detailPayload,
-        date: _requestDate(doc),
-        title: (data['documentType'] ?? 'Document Request').toString(),
-        subtitle: (data['purpose'] ?? 'No details provided').toString(),
-        status: _requestStatusLabel(status),
-        statusColor: _requestStatusColor(status),
-        icon: Icons.description_outlined,
-        iconBg: const Color(0xFFE8F3FF),
-        iconColor: const Color(0xFF1F85D5),
-      );
-    }).toList();
-  }
-
-  List<_ActivityRecord> _issueRecords(
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-  ) {
-    return docs.map((doc) {
-      final data = doc.data();
-      final status = (data['status'] ?? 'submitted').toString();
-      final detailPayload = Map<String, dynamic>.from(data)
-        ..putIfAbsent('issueId', () => doc.id)
-        ..putIfAbsent('createdAt', () => data['createdAt']);
-      return _ActivityRecord(
-        type: _ActivityType.issue,
-        data: detailPayload,
-        date: _issueDate(doc),
-        title: (data['category'] ?? 'Reported Issue').toString(),
-        subtitle: (data['location'] ?? 'No location provided').toString(),
-        status: _issueStatusLabel(status),
-        statusColor: _issueStatusColor(status),
-        icon: Icons.warning_amber_outlined,
-        iconBg: const Color(0xFFFFF2E6),
-        iconColor: const Color(0xFFEE7A35),
-      );
-    }).toList();
-  }
-
-  String _timeAgo(DateTime date) {
-    final diff = DateTime.now().difference(date);
-    if (diff.inDays >= 7) {
-      final weeks = (diff.inDays / 7).floor();
-      return weeks == 1 ? '1 week ago' : '$weeks weeks ago';
-    } else if (diff.inDays >= 1) {
-      return diff.inDays == 1 ? '1 day ago' : '${diff.inDays} days ago';
-    } else if (diff.inHours >= 1) {
-      return diff.inHours == 1 ? '1 hour ago' : '${diff.inHours} hours ago';
-    } else if (diff.inMinutes >= 1) {
-      return diff.inMinutes == 1
-          ? '1 minute ago'
-          : '${diff.inMinutes} minutes ago';
-    }
-    return 'Just now';
+    return collection
+        .where('userId', isEqualTo: userId)
+        .orderBy('paidAt', descending: true)
+        .limit(5)
+        .snapshots();
   }
 
   @override
@@ -604,7 +543,7 @@ class _RecentActivitySection extends StatelessWidget {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          _SectionHeader(title: 'Recent Activity', actionLabel: 'View All'),
+          _SectionHeader(title: 'Recent Activity'),
           SizedBox(height: 16),
           _EmptyActivityCard(message: 'Sign in to see your activity.'),
         ],
@@ -614,7 +553,17 @@ class _RecentActivitySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const _SectionHeader(title: 'Recent Activity', actionLabel: 'View All'),
+        _SectionHeader(
+          title: 'Recent Activity',
+          actionLabel: 'View All',
+          onActionTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AllActivityPage(userId: userId!),
+              ),
+            );
+          },
+        ),
         const SizedBox(height: 16),
         StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: _requestStream(),
@@ -633,60 +582,85 @@ class _RecentActivitySection extends StatelessWidget {
             return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: _issueStream(),
               builder: (context, issueSnapshot) {
-                if (issueSnapshot.connectionState == ConnectionState.waiting &&
-                    requestDocs.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                final issueDocs = issueSnapshot.data?.docs ?? [];
+                return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: _paymentStream(),
+                  builder: (context, paymentSnapshot) {
+                    if (paymentSnapshot.connectionState ==
+                            ConnectionState.waiting &&
+                        requestDocs.isEmpty &&
+                        issueDocs.isEmpty) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                final records = [
-                  ..._requestRecords(requestDocs),
-                  if (!issueSnapshot.hasError)
-                    ..._issueRecords(issueSnapshot.data?.docs ?? []),
-                ];
+                    final records = [
+                      ...mapRequestRecords(requestDocs),
+                      if (!issueSnapshot.hasError)
+                        ...mapIssueRecords(issueDocs),
+                      if (!(paymentSnapshot.hasError))
+                        ...mapPaymentRecords(
+                            paymentSnapshot.data?.docs ?? []),
+                    ];
 
-                if (records.isEmpty) {
-                  return const _EmptyActivityCard(
-                    message:
-                        'No activity yet. Submit a request or report to see it here.',
-                  );
-                }
+                    if (records.isEmpty) {
+                      return const _EmptyActivityCard(
+                        message:
+                            'No activity yet. Submit a request or report to see it here.',
+                      );
+                    }
 
-                records.sort((a, b) => b.date.compareTo(a.date));
-                final recent = records.take(3).toList();
+                    records.sort((a, b) => b.date.compareTo(a.date));
+                    final recent = records.take(3).toList();
 
-                return Column(
-                  children: recent.map((record) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _ActivityItem(
-                        title: record.title,
-                        subtitle: record.subtitle,
-                        timeAgo: _timeAgo(record.date),
-                        status: record.status,
-                        statusColor: record.statusColor,
-                        icon: record.icon,
-                        iconBg: record.iconBg,
-                        iconColor: record.iconColor,
-                        onTap: () {
-                          if (record.type == _ActivityType.request) {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    RequestDetailsPage(data: record.data),
-                              ),
-                            );
-                          } else {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    ReportDetailsPage(data: record.data),
-                              ),
-                            );
-                          }
-                        },
-                      ),
+                    return Column(
+                      children: recent.map((record) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _ActivityItem(
+                            title: record.title,
+                            subtitle: record.subtitle,
+                            timeAgo: formatTimeAgo(record.date),
+                            status: record.status,
+                            statusColor: record.statusColor,
+                            icon: record.icon,
+                            iconBg: record.iconBg,
+                            iconColor: record.iconColor,
+                            onTap: () {
+                              switch (record.type) {
+                                case ActivityType.request:
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => RequestDetailsPage(
+                                        data: record.data,
+                                      ),
+                                    ),
+                                  );
+                                  break;
+                                case ActivityType.issue:
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => ReportDetailsPage(
+                                        data: record.data,
+                                      ),
+                                    ),
+                                  );
+                                  break;
+                                case ActivityType.payment:
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => PaymentReceiptPage(
+                                        paymentData: record.data,
+                                      ),
+                                    ),
+                                  );
+                                  break;
+                              }
+                            },
+                          ),
+                        );
+                      }).toList(),
                     );
-                  }).toList(),
+                  },
                 );
               },
             );
@@ -724,34 +698,6 @@ class _EmptyActivityCard extends StatelessWidget {
       ),
     );
   }
-}
-
-enum _ActivityType { request, issue }
-
-class _ActivityRecord {
-  const _ActivityRecord({
-    required this.type,
-    required this.data,
-    required this.date,
-    required this.title,
-    required this.subtitle,
-    required this.status,
-    required this.statusColor,
-    required this.icon,
-    required this.iconBg,
-    required this.iconColor,
-  });
-
-  final _ActivityType type;
-  final Map<String, dynamic> data;
-  final DateTime date;
-  final String title;
-  final String subtitle;
-  final String status;
-  final Color statusColor;
-  final IconData icon;
-  final Color iconBg;
-  final Color iconColor;
 }
 
 class _UserStatsRow extends StatelessWidget {
@@ -959,10 +905,15 @@ class _ActivityItem extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, this.actionLabel});
+  const _SectionHeader({
+    required this.title,
+    this.actionLabel,
+    this.onActionTap,
+  });
 
   final String title;
   final String? actionLabel;
+  final VoidCallback? onActionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -978,7 +929,7 @@ class _SectionHeader extends StatelessWidget {
         const Spacer(),
         if (actionLabel != null)
           TextButton(
-            onPressed: () {},
+            onPressed: onActionTap,
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFF1F85D5),
               padding: EdgeInsets.zero,

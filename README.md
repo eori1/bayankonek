@@ -35,6 +35,14 @@ Bayankonek streamlines how residents interact with their local government. Users
    - Android Studio or Xcode command-line tools
    - Firebase CLI: `npm install -g firebase-tools`
    - FlutterFire CLI: `dart pub global activate flutterfire_cli`
+   - If you plan on creating keys or updating rules, make sure your Google Cloud account has the following IAM roles (owner works best during setup):
+     - Service Usage Admin / Service Usage Consumer
+     - Logs Writer
+     - Secret Manager Admin + Secret Manager Secret Accessor/Version Adder
+     - IAM Service Account Token Creator (needed to impersonate `firebase-project-id@appspot.gserviceaccount.com`)
+     - App Engine Deployer
+     - Cloud Functions Admin
+     - Storage Admin
 
 2. **Clone and bootstrap**
    ```bash
