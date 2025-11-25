@@ -11,13 +11,11 @@ class VerifyCodePage extends StatefulWidget {
     required this.phoneNumber,
     required this.verificationId,
     this.resendToken,
-    this.testCode,
   });
 
   final String phoneNumber;
   final String verificationId;
   final int? resendToken;
-  final String? testCode;
 
   @override
   State<VerifyCodePage> createState() => _VerifyCodePageState();
@@ -100,17 +98,6 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
       return;
     }
 
-    if (widget.testCode != null) {
-      if (code == widget.testCode) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      } else {
-        setState(() {
-          _errorMessage = 'Incorrect code for test number.';
-        });
-      }
-      return;
-    }
-
     setState(() {
       _isVerifying = true;
       _errorMessage = null;
@@ -145,13 +132,6 @@ class _VerifyCodePageState extends State<VerifyCodePage> {
 
   Future<void> _resendCode() async {
     FocusScope.of(context).unfocus();
-
-    if (widget.testCode != null) {
-      setState(() {
-        _errorMessage = 'Use the configured test code: ${widget.testCode}';
-      });
-      return;
-    }
 
     setState(() {
       _isResending = true;

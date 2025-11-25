@@ -231,14 +231,27 @@ class _PaymentsPageState extends State<PaymentsPage> {
                       const _EmptyState(message: 'No payments recorded yet.')
                     else
                       Column(
-                        children: paymentList
-                            .map(
-                              (doc) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: _RecentPaymentCard(doc: doc),
-                              ),
-                            )
-                            .toList(),
+                        children: paymentList.map((doc) {
+                          final data = doc.data();
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _RecentPaymentCard(
+                              doc: doc,
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => PaymentReceiptPage(
+                                      paymentData: {
+                                        ...data,
+                                        'paymentId': doc.id,
+                                      },
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        }).toList(),
                       ),
                   ],
                 ),
@@ -733,9 +746,10 @@ class _PaymentDetailTile extends StatelessWidget {
 }
 
 class _RecentPaymentCard extends StatelessWidget {
-  const _RecentPaymentCard({required this.doc});
+  const _RecentPaymentCard({required this.doc, this.onTap});
 
   final DocumentSnapshot<Map<String, dynamic>> doc;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -746,90 +760,94 @@ class _RecentPaymentCard extends StatelessWidget {
     final paidLabel =
         paidDate != null ? DateFormat('MMM d, yyyy').format(paidDate) : '—';
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 16,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F7EC),
-              borderRadius: BorderRadius.circular(18),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 16,
+              offset: const Offset(0, 10),
             ),
-            child: const Icon(Icons.sticky_note_2_outlined,
-                color: Color(0xFF27AE60)),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F7EC),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: const Icon(Icons.sticky_note_2_outlined,
+                  color: Color(0xFF27AE60)),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    data['documentType']?.toString() ?? 'Document Fee',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    data['purpose']?.toString() ?? 'Barangay service payment',
+                    style: const TextStyle(
+                      color: Color(0xFF6B6F7F),
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Paid: $paidLabel',
+                    style: const TextStyle(
+                      color: Color(0xFF9AA3B9),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  data['documentType']?.toString() ?? 'Document Fee',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  data['purpose']?.toString() ?? 'Barangay service payment',
+                  '₱${amount.toStringAsFixed(2)}',
                   style: const TextStyle(
-                    color: Color(0xFF6B6F7F),
-                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1F1F1F),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Paid: $paidLabel',
-                  style: const TextStyle(
-                    color: Color(0xFF9AA3B9),
-                    fontSize: 12,
+                const SizedBox(height: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE6F8EE),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Text(
+                    'Paid',
+                    style: TextStyle(
+                      color: Color(0xFF27AE60),
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '₱${amount.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1F1F1F),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE6F8EE),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Text(
-                  'Paid',
-                  style: TextStyle(
-                    color: Color(0xFF27AE60),
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -162,23 +162,6 @@ class _HighlightCard extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.9),
                       ),
                 ),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF1F85D5),
-                    backgroundColor: Colors.white,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                  child: const Text(
-                    'View Announcements',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
               ],
             ),
           ),

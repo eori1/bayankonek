@@ -6,8 +6,6 @@ import '../widgets/page_header.dart';
 import '../widgets/primary_gradient_button.dart';
 import 'verify_code_page.dart';
 
-const Map<String, String> _testNumbers = {'+639272739414': '123123'};
-
 class MobileLoginPage extends StatefulWidget {
   const MobileLoginPage({super.key});
 
@@ -62,22 +60,6 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
       _isSending = true;
       _errorMessage = null;
     });
-
-    if (_testNumbers.containsKey(phoneNumber)) {
-      final code = _testNumbers[phoneNumber]!;
-      setState(() => _isSending = false);
-      if (!mounted) return;
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => VerifyCodePage(
-            phoneNumber: phoneNumber,
-            verificationId: 'test-$phoneNumber',
-            testCode: code,
-          ),
-        ),
-      );
-      return;
-    }
 
     try {
       await FirebaseAuth.instance.verifyPhoneNumber(
