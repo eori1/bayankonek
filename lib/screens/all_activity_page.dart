@@ -10,7 +10,7 @@ import 'request_details_page.dart';
 
 class AllActivityPage extends StatelessWidget {
   const AllActivityPage({super.key, required this.userId});
-
+  
   final String userId;
 
   Stream<QuerySnapshot<Map<String, dynamic>>> _requestStream() {
